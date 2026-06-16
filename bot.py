@@ -54,3 +54,24 @@ def notify(items, query):
         print("Message WhatsApp envoyé.")
     except Exception as e:
         print(f"Twilio erreur ({e}), affichage terminal :\n{body}")
+
+
+def main(args=None):
+    parser = argparse.ArgumentParser(description="Vinted bot — recherche d'annonces")
+    parser.add_argument("--query", required=True, help="Mot-clé de recherche")
+    parser.add_argument("--max-price", type=float, help="Prix maximum (€)")
+    parser.add_argument("--min-price", type=float, help="Prix minimum (€)")
+    parser.add_argument("--limit", type=int, default=10, help="Nombre de résultats (défaut: 10)")
+    parsed = parser.parse_args(args)
+
+    items = search(
+        query=parsed.query,
+        max_price=parsed.max_price,
+        min_price=parsed.min_price,
+        limit=parsed.limit,
+    )
+    notify(items, query=parsed.query)
+
+
+if __name__ == "__main__":
+    main()
