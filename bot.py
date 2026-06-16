@@ -6,20 +6,31 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+VINTED_HOME = "https://www.vinted.fr"
 VINTED_API_URL = "https://www.vinted.fr/api/v2/catalog/items"
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "fr-FR,fr;q=0.9",
 }
 
 
+def _get_session():
+    session = requests.Session()
+    session.headers.update(HEADERS)
+    session.get(VINTED_HOME, timeout=10)
+    return session
+
+
 def search(query, max_price, min_price, limit):
-    params = {"search_text": query, "per_page": limit}
+    params = {"search_text": query, "per_page": limit, "order": "newest_first"}
     if max_price is not None:
         params["price_to"] = max_price
     if min_price is not None:
         params["price_from"] = min_price
 
-    response = requests.get(VINTED_API_URL, params=params, headers=HEADERS, timeout=10)
+    session = _get_session()
+    response = session.get(VINTED_API_URL, params=params, timeout=10)
 
     if response.status_code != 200:
         raise requests.HTTPError(f"Erreur Vinted : HTTP {response.status_code}", response=response)
@@ -28,8 +39,8 @@ def search(query, max_price, min_price, limit):
     return [
         {
             "title": item["title"],
-            "price": f"{item['price']} {item['currency']}",
-            "url": item["url"],
+            "price": f"{item['price']['amount']} {item['price']['currency_code']}",
+            "url": f"https://www.vinted.fr{item['path']}",
         }
         for item in items
     ]
