@@ -33,3 +33,24 @@ def search(query, max_price, min_price, limit):
         }
         for item in items
     ]
+
+
+def notify(items, query):
+    if items:
+        lines = [f"🔍 Vinted — \"{query}\" ({len(items)} résultats)\n"]
+        for i, item in enumerate(items, 1):
+            lines.append(f"{i}. {item['title']} — {item['price']}\n   {item['url']}\n")
+        body = "\n".join(lines)
+    else:
+        body = f"Aucune annonce trouvée pour \"{query}\" sur Vinted."
+
+    try:
+        client = Client(os.environ["TWILIO_SID"], os.environ["TWILIO_TOKEN"])
+        client.messages.create(
+            from_=os.environ["FROM_WHATSAPP"],
+            to=os.environ["TO_WHATSAPP"],
+            body=body,
+        )
+        print("Message WhatsApp envoyé.")
+    except Exception as e:
+        print(f"Twilio erreur ({e}), affichage terminal :\n{body}")
