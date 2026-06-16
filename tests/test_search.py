@@ -1,4 +1,6 @@
 from unittest.mock import patch, MagicMock
+import pytest
+import requests
 from bot import search
 
 MOCK_RESPONSE = {
@@ -56,8 +58,5 @@ def test_search_returns_empty_on_no_results():
 def test_search_raises_on_http_error():
     with patch("bot.requests.get") as mock_get:
         mock_get.return_value = MagicMock(status_code=429)
-        try:
+        with pytest.raises(requests.HTTPError):
             search(query="nike", max_price=None, min_price=None, limit=10)
-            assert False, "Should have raised"
-        except SystemExit:
-            pass

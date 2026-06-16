@@ -1,4 +1,3 @@
-import sys
 import os
 import argparse
 import requests
@@ -20,11 +19,10 @@ def search(query, max_price, min_price, limit):
     if min_price is not None:
         params["price_from"] = min_price
 
-    response = requests.get(VINTED_API_URL, params=params, headers=HEADERS)
+    response = requests.get(VINTED_API_URL, params=params, headers=HEADERS, timeout=10)
 
     if response.status_code != 200:
-        print(f"Erreur Vinted : HTTP {response.status_code}")
-        sys.exit(1)
+        raise requests.HTTPError(f"Erreur Vinted : HTTP {response.status_code}", response=response)
 
     items = response.json().get("items", [])
     return [
