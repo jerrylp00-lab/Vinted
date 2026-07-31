@@ -37,11 +37,13 @@ Un seul call à l'API catalogue existante (`/api/v2/catalog/items`, déjà utili
 
 Ajoutée dans `bot.py`, à côté de `search()`. Réutilise `_get_session()`.
 
-- GET `/api/v2/catalog/items` avec `search_text=query`, `per_page=limit`, `order=newest_first`
+- GET `/api/v2/catalog/items` avec `search_text=query`, `per_page=limit` (**pas de `order=newest_first`** — testé en prod, ce tri ne renvoie que les toutes dernières annonces (< 20-30 min), donc favourite_count quasi toujours à 0 ; le tri par défaut de l'API, basé pertinence, remonte au contraire les annonces à forte traction quelle que soit leur fraîcheur)
 - Pour chaque item : extrait `title`, `price`, `url` (comme `search()`), plus `favourite_count`, `view_count`, `promoted`, `photo_ts`
 - Calcule `age_hours`
 - Filtre selon la règle ci-dessus
 - Retourne `[{title, price, url, favourite_count, view_count, age_hours}]`
+
+**Validé en test réel** (2026-07-31, query "Chaussure", seuils 50 likes / 12h) : 1 résultat trouvé — "Escarpins noir vernis", 72 likes, 2h66, non promue.
 
 ### Script de test manuel
 
