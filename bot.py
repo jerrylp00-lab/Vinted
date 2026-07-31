@@ -1,6 +1,7 @@
 import os
 import argparse
 import time
+from datetime import datetime, timezone
 import requests
 from twilio.rest import Client
 from dotenv import load_dotenv
@@ -80,6 +81,7 @@ def find_trending(query, min_likes=50, max_age_hours=12, exclude_promoted=True, 
             "favourite_count": favourite_count,
             "view_count": item.get("view_count", 0),
             "age_hours": round(age_hours, 2),
+            "published_at": datetime.fromtimestamp(photo_ts, tz=timezone.utc).strftime("%Y-%m-%d %H:%M"),
         })
 
     return trending
