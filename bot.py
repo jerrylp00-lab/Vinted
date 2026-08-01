@@ -48,41 +48,49 @@ def search(query, max_price, min_price, limit):
     ]
 
 
-def find_trending(query, min_likes=50, max_age_hours=12, exclude_promoted=True, limit=100):
-    params = {"search_text": query, "per_page": limit}
-
+def find_trending(query, min_likes=50, max_age_hours=12, exclude_promoted=True, limit=96):
     session = _get_session()
-    response = session.get(VINTED_API_URL, params=params, timeout=10)
-
-    if response.status_code != 200:
-        raise requests.HTTPError(f"Erreur Vinted : HTTP {response.status_code}", response=response)
-
     now = time.time()
     trending = []
-    for item in response.json().get("items", []):
-        photo_ts = (item.get("photo") or {}).get("high_resolution", {}).get("timestamp")
-        if photo_ts is None:
-            continue
-        age_hours = (now - photo_ts) / 3600
-        favourite_count = item.get("favourite_count", 0)
-        promoted = item.get("promoted", False)
+    page = 1
+    total_pages = 1
 
-        if age_hours > max_age_hours:
-            continue
-        if favourite_count < min_likes:
-            continue
-        if exclude_promoted and promoted:
-            continue
+    while page <= total_pages:
+        params = {"search_text": query, "per_page": limit, "page": page}
+        response = session.get(VINTED_API_URL, params=params, timeout=10)
 
-        trending.append({
-            "title": item["title"],
-            "price": f"{item['price']['amount']} {item['price']['currency_code']}",
-            "url": f"https://www.vinted.fr{item['path']}",
-            "favourite_count": favourite_count,
-            "view_count": item.get("view_count", 0),
-            "age_hours": round(age_hours, 2),
-            "published_at": datetime.fromtimestamp(photo_ts, tz=timezone.utc).strftime("%Y-%m-%d %H:%M"),
-        })
+        if response.status_code != 200:
+            raise requests.HTTPError(f"Erreur Vinted : HTTP {response.status_code}", response=response)
+
+        data = response.json()
+        total_pages = data.get("pagination", {}).get("total_pages", 1)
+
+        for item in data.get("items", []):
+            photo_ts = (item.get("photo") or {}).get("high_resolution", {}).get("timestamp")
+            if photo_ts is None:
+                continue
+            age_hours = (now - photo_ts) / 3600
+            favourite_count = item.get("favourite_count", 0)
+            promoted = item.get("promoted", False)
+
+            if age_hours > max_age_hours:
+                continue
+            if favourite_count < min_likes:
+                continue
+            if exclude_promoted and promoted:
+                continue
+
+            trending.append({
+                "title": item["title"],
+                "price": f"{item['price']['amount']} {item['price']['currency_code']}",
+                "url": f"https://www.vinted.fr{item['path']}",
+                "favourite_count": favourite_count,
+                "view_count": item.get("view_count", 0),
+                "age_hours": round(age_hours, 2),
+                "published_at": datetime.fromtimestamp(photo_ts, tz=timezone.utc).strftime("%Y-%m-%d %H:%M"),
+            })
+
+        page += 1
 
     return trending
 
