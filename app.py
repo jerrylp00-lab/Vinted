@@ -21,15 +21,15 @@ if st.button("Lancer"):
         )
 
     st.write(f"{len(results)} résultat(s)")
-    st.dataframe([
-        {
-            "Titre": r["title"],
-            "Prix": r["price"],
-            "URL": r["url"],
-            "Likes": r["favourite_count"],
-            "Vues": r["view_count"],
-            "Date de publication": r["published_at"],
-            "Heures depuis publication": r["age_hours"],
-        }
-        for r in results
-    ])
+
+    for r in results:
+        with st.container(border=True):
+            col_photo, col_info = st.columns([1, 3])
+            with col_photo:
+                if r.get("photo_url"):
+                    st.image(r["photo_url"])
+            with col_info:
+                st.markdown(f"**{r['title']}** — {r['price']}")
+                st.write(f"👍 {r['favourite_count']} likes · 👁 {r['view_count']} vues")
+                st.write(f"Publié le {r['published_at']} ({r['age_hours']} h)")
+                st.link_button("Voir l'annonce", r["url"])

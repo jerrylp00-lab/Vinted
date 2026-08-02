@@ -66,7 +66,8 @@ def find_trending(query, min_likes=50, max_age_hours=12, exclude_promoted=True, 
         total_pages = data.get("pagination", {}).get("total_pages", 1)
 
         for item in data.get("items", []):
-            photo_ts = (item.get("photo") or {}).get("high_resolution", {}).get("timestamp")
+            photo = item.get("photo") or {}
+            photo_ts = photo.get("high_resolution", {}).get("timestamp")
             if photo_ts is None:
                 continue
             age_hours = (now - photo_ts) / 3600
@@ -80,10 +81,16 @@ def find_trending(query, min_likes=50, max_age_hours=12, exclude_promoted=True, 
             if exclude_promoted and promoted:
                 continue
 
+            thumbnail = next(
+                (t["url"] for t in photo.get("thumbnails", []) if t.get("type") == "thumb150x210"),
+                photo.get("url"),
+            )
+
             trending.append({
                 "title": item["title"],
                 "price": f"{item['price']['amount']} {item['price']['currency_code']}",
                 "url": f"https://www.vinted.fr{item['path']}",
+                "photo_url": thumbnail,
                 "favourite_count": favourite_count,
                 "view_count": item.get("view_count", 0),
                 "age_hours": round(age_hours, 2),
