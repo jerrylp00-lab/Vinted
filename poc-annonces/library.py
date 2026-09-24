@@ -36,10 +36,15 @@ DESCRIBE_SCHEMA = {
 }
 
 DESCRIBE_PROMPT = (
-    "Décris en français, en une phrase courte, le style visuel de cette photo "
-    "de référence (décor, ambiance, mise en scène, pose) et donne 2 à 4 tags "
+    "Décris en français, en un paragraphe détaillé d'au moins 4-5 phrases, le "
+    "style visuel de cette photo de référence : le décor précis (intérieur ou "
+    "extérieur, éléments visibles, murs, sol, végétation, mobilier...), la "
+    "lumière (naturelle/artificielle, douce/dure, direction, heure suggérée), "
+    "la composition et le cadrage (plan large/serré, angle, profondeur de "
+    "champ), la pose et l'attitude du sujet si visible, la palette de couleurs "
+    "dominante, et l'ambiance générale qui s'en dégage. Donne aussi 2 à 4 tags "
     "de style en français. Ne décris pas le vêtement lui-même, seulement le "
-    "décor/l'ambiance."
+    "décor/l'ambiance/la mise en scène."
 )
 
 
