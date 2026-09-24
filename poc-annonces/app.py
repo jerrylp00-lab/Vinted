@@ -158,23 +158,29 @@ if st.session_state.draft is not None and not st.session_state.draft.questions:
     if st.session_state.draft.decor_refs:
         st.write(f"Références choisies : {', '.join(st.session_state.draft.decor_ref_labels)}")
         st.caption(f"Mood affiné : {st.session_state.draft.mood}")
-
-        if st.session_state.draft.mannequin_ref is None:
-            st.info(
-                "Pas de mannequin maison pour ce genre : le plan porté utilisera "
-                "une personne générée librement."
-            )
+    else:
         st.info(
-            "La génération appelle un modèle image (~0,08 $/photo, 4 photos + "
-            "vérification). Valide seulement quand tu es prêt."
+            f"Aucune photo de référence pour {genre} / {type_vetement} dans la "
+            "bibliothèque : les photos seront générées sans référence de style "
+            "(ambiance guidée par le mood seul)."
         )
-        if st.button("Valider et générer les 4 photos"):
-            with st.spinner("Génération des 4 plans (≈ 15 s)…"):
-                results = generate_listing_photos(
-                    st.session_state.photos, st.session_state.draft
-                )
-            st.session_state.generated_photos = results
-            st.session_state.spent += sum(r.cost for r in results)
+
+    if st.session_state.draft.mannequin_ref is None:
+        st.info(
+            "Pas de mannequin maison pour ce genre : le plan porté utilisera "
+            "une personne générée librement."
+        )
+    st.info(
+        "La génération appelle un modèle image (~0,08 $/photo, 4 photos + "
+        "vérification). Valide seulement quand tu es prêt."
+    )
+    if st.button("Valider et générer les 4 photos"):
+        with st.spinner("Génération des 4 plans (≈ 15 s)…"):
+            results = generate_listing_photos(
+                st.session_state.photos, st.session_state.draft
+            )
+        st.session_state.generated_photos = results
+        st.session_state.spent += sum(r.cost for r in results)
 
     if st.session_state.generated_photos:
         render_gallery()
