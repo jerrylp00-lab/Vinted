@@ -57,3 +57,17 @@ Ajouts à `jobs` : `genre`, `type_vetement`, `drive_input_folder_id`, `questions
 Tests réalisés : (1) sous-workflow sur un job de test (`test1`) : 8 s, 0,0002 $, puis affinage avec un message utilisateur (marque et taille intégrées) ; (2) de bout en bout via `scripts/test_job.sh` avec 3 vraies photos (`VFN_SECRET=... ./scripts/test_job.sh femme haut photo1.png …`) : job créé, photos envoyées sur Drive, texte prêt en ~15 s pour 0,0002 $. La réponse `{job_id}` du webhook de création n'est renvoyée qu'après l'écriture du job, sinon le premier poll du statut tombait sur un 404.
 
 Reste : les lignes de test de la table `jobs` (`test1` et deux jobs de `test_job.sh`) sont à supprimer depuis l'UI n8n ; `decor_refs` est vide jusqu'à l'étape 3.
+
+## Étape 3 — Sélection du style et validation (2026-09-24)
+
+| Workflow | ID | Rôle |
+|---|---|---|
+| `VFN — Sélectionner le style (sous-workflow)` | `FI9HyhPdvbATuSqw` | Filtre `library` (actif, même genre et type, moods autorisés ; à défaut même genre et moods avec avertissement ; sinon aucune référence), tire jusqu'à 10 candidates, jugement visuel du LLM (`selection_style`) qui en garde 2 à 3 et dérive le mood, associe le mannequin du genre (`config_mannequins`). Statut → `en_attente_validation`. |
+| `VFN — Choisir le style (webhook)` | `ao81dPakf9IqTIyr` | `POST /webhook/vfn/job/style` `{job_id, moods_autorises?: [...]}` : lance ou relance la sélection (statuts acceptés : `texte_pret`, `en_attente_validation`, `erreur`). Sert aussi de « retirer au sort ». |
+| `VFN — Valider le plan (webhook)` | `z1SY3ZkptHVSd4al` | `POST /webhook/vfn/job/valider` `{job_id, mood?, decor_refs?: [file_id, ...]}` : applique les corrections (les ids doivent exister et être actifs dans `library`), statut → `generation_en_cours`. 409 si le job n'est pas `en_attente_validation`. **Ne déclenche pas encore la génération (étape 4).** |
+
+Nouveaux champs de `jobs` : `avertissements` (JSON, ex. « pas de mannequin pour ce genre »), `mannequin_file_id`. `decor_refs` est une liste JSON d'objets `{file_id, nom_fichier, type_vetement, moods, tags}`. Nouveaux prompts : `selection_style` v1 et `config_mannequins` v1 (JSON genre → id de fichier Drive du mannequin, modifiable dans la table). Le statut (`GET /job-status`) renvoie maintenant aussi `mannequin_file_id` et `avertissements`.
+
+Tests (en production, avec le secret) : sélection sur un job `femme/veste` restreint aux moods `urbain_minimaliste` et `streetwear_decontracte` → 2 références cohérentes en ~10 s pour 0,0001 $ ; validation avec mood et référence corrigés → statut `generation_en_cours`, corrections appliquées ; seconde validation → 409.
+
+Le front devra afficher les images de `decor_refs` : il faudra un endpoint d'aperçu des photos Drive (étape 6), les fichiers n'étant pas publics.
