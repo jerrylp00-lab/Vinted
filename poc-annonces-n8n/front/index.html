@@ -413,16 +413,19 @@ function lazyImg(id, cls) { const i = h("img", { class: cls || "", alt: "" }); i
 let CONFIG = null;
 let job = null;            // dernier état connu de la fiche courante
 let pollTimer = null;
+let currentJobId = null;   // fiche suivie : toute réponse d'une autre fiche est ignorée
+let pollFails = 0;
+const planState = new Map();   // job_id|plan → { pastilles:Set, fb:string, raw:bool } : survit aux re-rendus de la galerie
 const inputPhotos = new Map();   // job_id → URL locale de la 1re photo d'entrée (fiches créées dans cette session)
 // Brouillon de l'étape style / relecture, propre à une fiche : jamais écrasé par les rafraîchissements.
 let draft = null;
 function draftFor(j) {
-  if (!draft || draft.jobId !== j.job_id) draft = { jobId: j.job_id, initSel: false, sel: { vision: [], texte: [] }, mood: "", moodFilter: "", allTypes: false,
+  if (!draft || draft.jobId !== j.job_id) draft = { jobId: j.job_id, initSel: false, sel: { vision: [], texte: [] }, selTouched: false, pending: [], mood: "", moodFilter: "", allTypes: false,
     garment: null, garmentDirty: false, mannequin: null, sansMiroir: null, reviewOpen: false };
   const d = draft;
   if (!d.garmentDirty && j.garment_en != null) d.garment = j.garment_en;
   if (j.statut === "en_attente_validation" && !d.initSel) {
-    d.initSel = true;
+    d.initSel = true; d.selTouched = false;
     d.sel.vision = (j.decor_refs || []).map(r => r.file_id).slice(0, MAX_VISION);
     d.sel.texte = (j.inspi_texte || []).map(r => r.file_id).filter(id => !d.sel.vision.includes(id)).slice(0, MAX_TEXTE);
     d.mood = moodIds().includes(j.mood) ? j.mood : "";
@@ -470,13 +473,30 @@ document.querySelectorAll("#tabs button").forEach(b => b.addEventListener("click
 // ---------- suivi d'une fiche ----------
 function stopPoll() { if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; } }
 async function refreshJob(id) {
-  job = await api("GET", "/job-status?id=" + encodeURIComponent(id));
+  if (currentJobId !== id) { stopPoll(); pollFails = 0; currentJobId = id; }
+  let j;
+  try { j = await api("GET", "/job-status?id=" + encodeURIComponent(id)); }
+  catch (e) {
+    if (id !== currentJobId) return job;             // réponse périmée : on ignore
+    if (job && job.job_id === id && BUSY.includes(job.statut) && ++pollFails <= 5) { schedulePoll(id, 3000 * pollFails); return job; }  // échec transitoire : backoff
+    throw e;
+  }
+  if (id !== currentJobId) return job;               // l'utilisateur a changé de fiche pendant l'attente
+  pollFails = 0; job = j;
   store.set("job", id);
   renderAll();
   stopPoll();
-  if (BUSY.includes(job.statut)) pollTimer = setTimeout(() => refreshJob(id).catch(e => toast(e.message)), 3000);
+  if (BUSY.includes(job.statut)) schedulePoll(id, 3000);
   return job;
 }
+function schedulePoll(id, ms) {
+  stopPoll();
+  if (document.hidden) return;                       // reprise au retour de l'onglet (visibilitychange)
+  pollTimer = setTimeout(() => refreshJob(id).catch(e => toast(e.message)), ms);
+}
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && currentJobId && job && job.job_id === currentJobId && BUSY.includes(job.statut) && !pollTimer) refreshJob(currentJobId).catch(e => toast(e.message));
+});
 function setStatus(el, statut) {
   el.textContent = STATUS_LABELS[statut] || statut || "";
   el.className = "status" + (BUSY.includes(statut) ? " busy" : "") + (statut === "erreur" || statut === "budget_depasse" ? " err" : "");
@@ -548,7 +568,7 @@ function inspiInfo(id) {
   return r ? { drive_file_id: id, nom_fichier: r.nom_fichier, moods: r.moods || [], description_en: r.description_en || "", utilisations: 0, actif: true } : { drive_file_id: id, nom_fichier: id, moods: [], description_en: "", utilisations: 0, actif: true };
 }
 function toggleInspi(fileId, kind) {
-  const sel = draft.sel;
+  const sel = draft.sel; draft.selTouched = true;
   const other = kind === "vision" ? "texte" : "vision";
   const max = kind === "vision" ? MAX_VISION : MAX_TEXTE;
   if (sel[kind].includes(fileId)) sel[kind] = sel[kind].filter(id => id !== fileId);
@@ -557,19 +577,37 @@ function toggleInspi(fileId, kind) {
   renderStyleGrid();
 }
 function useAsInspi(fileId) {
-  const sel = draft.sel;
+  const sel = draft.sel; draft.selTouched = true;
   if (sel.vision.includes(fileId) || sel.texte.includes(fileId)) return;
   if (sel.vision.length < MAX_VISION) sel.vision.push(fileId);
   else if (sel.texte.length < MAX_TEXTE) sel.texte.push(fileId);
   else return toast("Sélection pleine : 2 en vision et 3 en texte. Retire une inspiration d'abord.");
   renderStyleGrid();
 }
+// Choix du mood par chip. Second clic sur le chip actif : le mood ET le filtre sont vidés (« aucun mood » :
+// la validation demandera d'en choisir un). La sélection n'est jamais modifiée par un retrait.
+// Mood nouvellement choisi et sélection non touchée : présélection recalculée (les plus utilisées du mood).
+function pickMood(id) {
+  const d = draft; d.mood = d.mood === id ? "" : id; d.moodFilter = d.mood;
+  if (d.mood && !d.selTouched) preselect(d);
+  renderStyleGrid();
+}
+function preselect(d) {
+  if (!LIB || !job) return;
+  const g = (job.genre || "").toLowerCase(), t = (job.type_vetement || "").toLowerCase();
+  const byUse = (a, b) => (b.utilisations || 0) - (a.utilisations || 0);
+  const pool = LIB.filter(i => i.actif && (i.genre || "").toLowerCase() === g && (i.moods || []).includes(d.mood));
+  const same = pool.filter(i => (i.type_vetement || "").toLowerCase() === t).sort(byUse);
+  const rest = pool.filter(i => (i.type_vetement || "").toLowerCase() !== t).sort(byUse);
+  const ids = [...same, ...rest].slice(0, MAX_VISION + MAX_TEXTE).map(i => i.drive_file_id);
+  d.sel.vision = ids.slice(0, MAX_VISION); d.sel.texte = ids.slice(MAX_VISION);
+}
 function renderStyleGrid() {
   if (!job || !draft) return;
   const d = draft, sel = d.sel;
   // chips de mood : choix unique (mood de la fiche) et filtre de la grille
   const chips = $("#moodChips"); chips.innerHTML = "";
-  for (const m of CONFIG.moods) chips.append(moodChip(m, d.mood === m.id, () => { d.mood = d.mood === m.id ? "" : m.id; d.moodFilter = d.mood; renderStyleGrid(); }));
+  for (const m of CONFIG.moods) chips.append(moodChip(m, d.mood === m.id, () => pickMood(m.id)));
   $("#allTypes").checked = d.allTypes;
   const box = $("#styleGrid"); box.innerHTML = "";
   if (!LIB) { box.append(h("span", { class: "muted" }, "Chargement de la bibliothèque…")); $("#gridCount").textContent = ""; }
@@ -580,7 +618,8 @@ function renderStyleGrid() {
       && (d.allTypes || (i.type_vetement || "").toLowerCase() === t) && (!d.moodFilter || (i.moods || []).includes(d.moodFilter))))
       .sort((a, b) => (b.utilisations || 0) - (a.utilisations || 0));
     $("#gridCount").textContent = list.length + " photo(s)" + (d.moodFilter ? " · mood " + d.moodFilter.replaceAll("_", " ") : " · tous moods") + (d.allTypes ? " · tous types" : " · type " + job.type_vetement);
-    if (!list.length) box.append(h("span", { class: "muted" }, "Aucune photo pour ce filtre : retire le mood ou coche « Tous les types »."));
+    for (const pid of d.pending) if (!libById(pid)) box.append(h("div", { class: "card item off" }, lazyImg(pid), h("div", { class: "muted" }, "indexation en cours"), h("div", { class: "seg" }, h("button", { disabled: true }, "Vision"), h("button", { disabled: true }, "Texte"))));
+    if (!list.length && !d.pending.length) box.append(h("span", { class: "muted" }, "Aucune photo pour ce filtre : retire le mood ou coche « Tous les types »."));
     for (const it of list) {
       const id = it.drive_file_id, isV = sel.vision.includes(id), isT = sel.texte.includes(id);
       const card = h("div", { class: "card item" + (isV ? " vision" : isT ? " texte" : "") });
@@ -590,7 +629,7 @@ function renderStyleGrid() {
         h("div", { class: "seg" },
           h("button", { class: "v" + (isV ? " on" : ""), title: "Image envoyée au générateur (2 max)", onclick: () => toggleInspi(id, "vision") }, "Vision"),
           h("button", { class: "t" + (isT ? " on" : ""), title: "Description envoyée en texte (3 max)", onclick: () => toggleInspi(id, "texte") }, "Texte")),
-        isV || isT ? h("button", { class: "linkbtn", onclick: () => { sel.vision = sel.vision.filter(x => x !== id); sel.texte = sel.texte.filter(x => x !== id); renderStyleGrid(); } }, "Retirer de la sélection")
+        isV || isT ? h("button", { class: "linkbtn", onclick: () => { sel.vision = sel.vision.filter(x => x !== id); sel.texte = sel.texte.filter(x => x !== id); d.selTouched = true; renderStyleGrid(); } }, "Retirer de la sélection")
           : h("button", { class: "linkbtn", onclick: () => useAsInspi(id) }, "Utiliser comme inspi pour la génération"));
       box.append(card);
     }
@@ -624,7 +663,7 @@ function renderReview() {
 }
 $("#mannequinDesc").addEventListener("input", () => { if (draft) draft.mannequin = $("#mannequinDesc").value; });
 $("#photoSansMiroir").addEventListener("change", () => { if (draft) draft.sansMiroir = $("#photoSansMiroir").checked; });
-$("#moodSelect").addEventListener("change", () => { if (draft) { draft.mood = $("#moodSelect").value; draft.moodFilter = draft.mood; renderStyleGrid(); } });
+$("#moodSelect").addEventListener("change", () => { if (draft) { draft.mood = $("#moodSelect").value; draft.moodFilter = draft.mood; if (draft.mood && !draft.selTouched) preselect(draft); renderStyleGrid(); } });
 $("#reviewBtn").addEventListener("click", () => {
   if (!draft) return; draft.reviewOpen = true; renderStyleGrid();
   $("#reviewPanel").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -632,6 +671,7 @@ $("#reviewBtn").addEventListener("click", () => {
 
 // ----- page galerie -----
 function renderGallery() {
+  const stateFor = plan => { const k = job.job_id + "|" + plan; if (!planState.has(k)) planState.set(k, { pastilles: new Set(), fb: "", raw: false }); return planState.get(k); };
   $("#galleryBody").classList.toggle("hidden", !job);
   if (!job) return;
   $("#openId").value = job.job_id;
@@ -650,11 +690,12 @@ function renderGallery() {
     let right;
     if (p.statut === "pret") {
       const img = h("img", { class: "shot", alt: "" });
-      let raw = false;
+      const st = stateFor(p.plan); let raw = st.raw;
       const show = () => (raw ? imageUrl(p.drive_file_id) : gradedUrl(p.drive_file_id)).then(u => { img.src = u; }).catch(() => { img.alt = "image indisponible"; });
       show();
       right = h("figure", {}, img, h("figcaption", {}, "Générée (étalonnée)"));
-      const rawBtn = h("button", { class: "btn ghost", onclick: () => { raw = !raw; rawBtn.textContent = raw ? "Voir étalonnée" : "Voir brut"; right.querySelector("figcaption").textContent = raw ? "Générée (brute)" : "Générée (étalonnée)"; show(); } }, "Voir brut");
+      const rawBtn = h("button", { class: "btn ghost", onclick: () => { raw = st.raw = !raw; rawBtn.textContent = raw ? "Voir étalonnée" : "Voir brut"; right.querySelector("figcaption").textContent = raw ? "Générée (brute)" : "Générée (étalonnée)"; show(); } }, raw ? "Voir étalonnée" : "Voir brut");
+      if (raw) right.querySelector("figcaption").textContent = "Générée (brute)";
       const keep = h("input", { type: "checkbox" }); keep.checked = p.garde;
       keep.addEventListener("change", async () => { try { await api("POST", "/job/garder", { job_id: job.job_id, plan: p.plan, garde: keep.checked }); } catch (e) { toast(e.message); keep.checked = !keep.checked; } });
       const dl = h("a", { class: "muted", href: "#" }, "Télécharger");
@@ -674,14 +715,15 @@ function renderGallery() {
     }
     if (["galerie_prete", "budget_depasse", "termine"].includes(job.statut)) {
       const rate = h("div", { class: "bar" }); card.append(rate); ratingWidget("plan:" + p.plan, "plan", rate);
-      const pastilles = new Set();
+      const pastilles = stateFor(p.plan).pastilles;
       const pBox = h("div", { class: "chips" });
       for (const ps of (CONFIG && CONFIG.pastilles) || []) {
-        const cb = h("input", { type: "checkbox" });
+        const cb = h("input", { type: "checkbox" }); cb.checked = pastilles.has(ps.code);
         cb.addEventListener("change", () => cb.checked ? pastilles.add(ps.code) : pastilles.delete(ps.code));
         pBox.append(h("label", { class: "chip", style: "margin:0;color:var(--ink)", title: ps.fragment }, cb, " " + ps.code.replaceAll("_", " ")));
       }
-      const fb = h("input", { type: "text", placeholder: "Consigne libre pour régénérer (facultatif)" });
+      const fb = h("input", { type: "text", placeholder: "Consigne libre pour régénérer (facultatif)", value: stateFor(p.plan).fb });
+      fb.addEventListener("input", () => { stateFor(p.plan).fb = fb.value; });
       const force = job.statut === "budget_depasse" ? h("input", { type: "checkbox" }) : null;
       const btn = h("button", { class: "btn ghost", onclick: async () => {
         btn.disabled = true;
@@ -778,20 +820,31 @@ $("#validateBtn").addEventListener("click", async () => {
 // Nouvelle inspiration déposée pendant la fiche : ajoutée à la bibliothèque puis à la sélection.
 $("#ficheUpBtn").addEventListener("click", async () => {
   const files = [...$("#ficheUpFiles").files]; if (!files.length || !job) return toast("Choisis au moins une photo");
+  const jobAtStart = job.job_id;
   const fd = new FormData(); fd.append("genre", job.genre); fd.append("type_vetement", job.type_vetement);
   files.forEach((f, i) => fd.append("photo" + i, f, f.name));
   $("#ficheUpBtn").disabled = true; $("#ficheUpMsg").textContent = "Envoi…";
   try {
     const r = await api("POST", "/library/upload", fd);
     const ids = r.drive_file_ids || [];
-    for (const id of ids) {
-      if (draft.sel.vision.includes(id) || draft.sel.texte.includes(id)) continue;
-      if (draft.sel.vision.length < MAX_VISION) draft.sel.vision.push(id);
-      else if (draft.sel.texte.length < MAX_TEXTE) draft.sel.texte.push(id);
-    }
-    $("#ficheUpMsg").textContent = ids.length + " photo(s) ajoutée(s) à la sélection ; indexation en cours (~5 s par photo), la grille se recharge dans 20 s.";
+    if (currentJobId !== jobAtStart || !draft || draft.jobId !== jobAtStart) { $("#ficheUpMsg").textContent = ""; $("#ficheUpBtn").disabled = false; return; }  // fiche changée pendant l'envoi
+    const d = draft;
+    d.pending.push(...ids.filter(x => !d.pending.includes(x)));
+    const adoptKnown = () => {   // n'entrent dans la sélection que les ids déjà connus de la bibliothèque
+      if (!draft || draft.jobId !== jobAtStart) return;
+      for (const id of [...d.pending]) {
+        if (!libById(id)) continue;
+        d.pending = d.pending.filter(x => x !== id);
+        if (d.sel.vision.includes(id) || d.sel.texte.includes(id)) continue;
+        if (d.sel.vision.length < MAX_VISION) d.sel.vision.push(id);
+        else if (d.sel.texte.length < MAX_TEXTE) d.sel.texte.push(id);
+        d.selTouched = true;
+      }
+    };
+    $("#ficheUpMsg").textContent = ids.length + " photo(s) envoyée(s) ; indexation en cours (~5 s par photo), la grille se recharge dans 20 s.";
     $("#ficheUpFiles").value = ""; renderStyleGrid();
-    setTimeout(async () => { await loadLibrary(); if (job && job.statut === "en_attente_validation") renderStyleGrid(); }, 20000);
+    await loadLibrary(); adoptKnown(); if (job && job.job_id === jobAtStart && job.statut === "en_attente_validation") renderStyleGrid();
+    setTimeout(async () => { await loadLibrary(); adoptKnown(); if (job && job.job_id === jobAtStart && job.statut === "en_attente_validation") renderStyleGrid(); }, 20000);
   } catch (e) { $("#ficheUpMsg").textContent = e.message; toast(e.message); }
   $("#ficheUpBtn").disabled = false;
 });

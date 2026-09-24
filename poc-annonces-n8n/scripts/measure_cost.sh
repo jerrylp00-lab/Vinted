@@ -20,13 +20,14 @@ if [ -z "${VFN_SECRET:-}" ]; then
 fi
 
 JOB_ID="${1:?Usage: $0 <job_id>}"
+JOB_ID_ENC=$(python3 -c 'import sys,urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$JOB_ID")
 
 # Fetch and save response to tempfile
 TMPFILE=$(mktemp)
-trap "rm -f $TMPFILE" EXIT
+trap 'rm -f "$TMPFILE"' EXIT
 
-curl -sS --fail-with-body -H "X-VFN-Secret: ${VFN_SECRET}" "$BASE/job-status?id=$JOB_ID" > "$TMPFILE" || {
-  echo "Erreur lors de la requête à $BASE/job-status?id=$JOB_ID" >&2
+curl -sS --fail-with-body -H "X-VFN-Secret: ${VFN_SECRET}" "$BASE/job-status?id=$JOB_ID_ENC" > "$TMPFILE" || {
+  echo "Erreur lors de la requête à $BASE/job-status?id=$JOB_ID_ENC" >&2
   exit 1
 }
 

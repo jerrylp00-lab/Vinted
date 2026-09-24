@@ -19,8 +19,9 @@ BASE="${VFN_BASE:-https://178-105-102-54.sslip.io/webhook/vfn}"
 GENRE="${1:?genre}"; TYPE="${2:?type}"; shift 2
 [ "$#" -ge 1 ] || { echo "Au moins une photo requise" >&2; exit 1; }
 
-ARGS=(-F "user=Jeremy" -F "genre=$GENRE" -F "type_vetement=$TYPE"
-  -F "marque=${MARQUE:-}" -F "taille=${TAILLE:-}" -F "mesures=${MESURES:-}" -F "etat=${ETAT:-}" -F "prix=${PRIX:-}" -F "texte_visible=${TEXTE_VISIBLE:-false}")
+# --form-string : les valeurs commençant par < ou @ ne sont pas interprétées par curl (seules les photos utilisent -F @fichier)
+ARGS=(--form-string "user=Jeremy" --form-string "genre=$GENRE" --form-string "type_vetement=$TYPE"
+  --form-string "marque=${MARQUE:-}" --form-string "taille=${TAILLE:-}" --form-string "mesures=${MESURES:-}" --form-string "etat=${ETAT:-}" --form-string "prix=${PRIX:-}" --form-string "texte_visible=${TEXTE_VISIBLE:-false}")
 i=0; for f in "$@"; do ARGS+=(-F "photo$i=@$f"); i=$((i+1)); done
 
 RESP=$(curl -sS -m 60 -X POST -H "X-VFN-Secret: $VFN_SECRET" "${ARGS[@]}" "$BASE/job")
