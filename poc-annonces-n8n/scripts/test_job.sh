@@ -2,6 +2,7 @@
 # Test de bout en bout de l'étape 2 : crée une fiche depuis des photos, puis interroge son statut.
 # Usage : ./scripts/test_job.sh <genre> <type> photo1.jpg [photo2.jpg ...]
 # Exemple : ./scripts/test_job.sh femme jupe ~/Desktop/jupe1.jpg ~/Desktop/jupe2.jpg
+# Champs optionnels via variables d'environnement : MARQUE, TAILLE, MESURES, ETAT, PRIX, TEXTE_VISIBLE (true/false)
 # Lit VFN_SECRET et VFN_BASE depuis .env ou l'environnement
 set -euo pipefail
 
@@ -18,7 +19,8 @@ BASE="${VFN_BASE:-https://178-105-102-54.sslip.io/webhook/vfn}"
 GENRE="${1:?genre}"; TYPE="${2:?type}"; shift 2
 [ "$#" -ge 1 ] || { echo "Au moins une photo requise" >&2; exit 1; }
 
-ARGS=(-F "user=Jeremy" -F "genre=$GENRE" -F "type_vetement=$TYPE")
+ARGS=(-F "user=Jeremy" -F "genre=$GENRE" -F "type_vetement=$TYPE"
+  -F "marque=${MARQUE:-}" -F "taille=${TAILLE:-}" -F "mesures=${MESURES:-}" -F "etat=${ETAT:-}" -F "prix=${PRIX:-}" -F "texte_visible=${TEXTE_VISIBLE:-false}")
 i=0; for f in "$@"; do ARGS+=(-F "photo$i=@$f"); i=$((i+1)); done
 
 RESP=$(curl -sS -m 60 -X POST -H "X-VFN-Secret: $VFN_SECRET" "${ARGS[@]}" "$BASE/job")
