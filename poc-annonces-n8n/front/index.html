@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fiches Vinted</title>
+<style>
+  :root {
+    --bg: #f6f5f2; --card: #ffffff; --ink: #1d1d1b; --muted: #6b6a66; --line: #e4e2dc;
+    --accent: #1f6f5c; --accent-ink: #ffffff; --warn: #b26a00; --bad: #b3261e; --good: #1f7a3d; --chip: #eeece6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #141413; --card: #1e1e1c; --ink: #f0eee8; --muted: #a09e97; --line: #33322f;
+      --accent: #4fb89d; --accent-ink: #0d1f1a; --warn: #e0a14a; --bad: #f2867f; --good: #6cc98b; --chip: #2a2927; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; padding: 12px 20px; background: var(--card); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; }
+  header h1 { font-size: 17px; margin: 0; font-weight: 650; }
+  nav { display: flex; gap: 4px; }
+  nav button { background: none; border: 0; padding: 8px 14px; border-radius: 8px; color: var(--muted); font: inherit; cursor: pointer; }
+  nav button.on { background: var(--chip); color: var(--ink); font-weight: 600; }
+  .grow { flex: 1; }
+  main { max-width: 1100px; margin: 0 auto; padding: 20px; }
+  section.card, .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  h2 { font-size: 16px; margin: 0 0 12px; }
+  h3 { font-size: 14px; margin: 0 0 6px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+  input[type=text], input[type=password], select, textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font: inherit; }
+  textarea { min-height: 70px; resize: vertical; }
+  button.btn { background: var(--accent); color: var(--accent-ink); border: 0; padding: 9px 16px; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer; }
+  button.btn.ghost { background: var(--chip); color: var(--ink); font-weight: 500; }
+  button.btn:disabled { opacity: .5; cursor: default; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .row > .grow { flex: 1; min-width: 160px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+  .chip { background: var(--chip); border: 1px solid transparent; border-radius: 999px; padding: 3px 10px; font-size: 12.5px; cursor: pointer; user-select: none; }
+  .chip.on { background: var(--accent); color: var(--accent-ink); }
+  .chip.static { cursor: default; }
+  .thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+  .thumbs img { height: 110px; border-radius: 8px; border: 1px solid var(--line); object-fit: cover; }
+  .status { display: inline-flex; gap: 8px; align-items: center; padding: 4px 12px; border-radius: 999px; background: var(--chip); font-size: 13px; }
+  .status.busy::before { content: ""; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--muted); border-top-color: transparent; animation: spin 0.9s linear infinite; }
+  .status.err { color: var(--bad); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .desc { white-space: pre-wrap; }
+  .warn { color: var(--warn); font-size: 13px; }
+  .bad { color: var(--bad); font-size: 13px; }
+  .good { color: var(--good); font-size: 13px; }
+  .plans { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+  .plan img.shot { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); background: var(--chip); display: block; }
+  .plan .ph { width: 100%; aspect-ratio: 3/4; border-radius: 10px; background: var(--chip); display: grid; place-items: center; color: var(--muted); font-size: 13px; text-align: center; padding: 10px; }
+  .plan .bar { display: flex; gap: 8px; align-items: center; margin: 8px 0 4px; flex-wrap: wrap; }
+  .thumb-btn { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 3px 9px; cursor: pointer; font-size: 16px; }
+  .thumb-btn.on { border-color: var(--accent); background: var(--chip); }
+  .lib { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+  .lib .item { padding: 10px; margin: 0; }
+  .lib .item.off { opacity: .55; }
+  .lib img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 8px; background: var(--chip); display: block; }
+  .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; z-index: 20; max-width: 90vw; }
+  dialog { border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); padding: 20px; max-width: 460px; width: 92vw; }
+  dialog::backdrop { background: rgba(0,0,0,.4); }
+  .hidden { display: none !important; }
+  small.k { font-family: ui-monospace, monospace; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🧥 Fiches Vinted</h1>
+  <nav id="tabs">
+    <button data-tab="fiche" class="on">Nouvelle fiche</button>
+    <button data-tab="galerie">Galerie</button>
+    <button data-tab="biblio">Bibliothèque</button>
+  </nav>
+  <span class="grow"></span>
+  <label style="margin:0" class="muted">Utilisateur
+    <select id="userSel" style="width:auto;display:inline-block"></select>
+  </label>
+  <button class="btn ghost" id="settingsBtn">Réglages</button>
+</header>
+
+<main>
+  <!-- ========== NOUVELLE FICHE ========== -->
+  <div id="tab-fiche">
+    <section class="card" id="formCard">
+      <h2>1. Photos du vêtement</h2>
+      <input type="file" id="photos" accept="image/*" multiple>
+      <div class="thumbs" id="photoPreview"></div>
+      <div class="row">
+        <div class="grow"><label>Genre</label><select id="genre"></select></div>
+        <div class="grow"><label>Type de vêtement</label><input type="text" id="type" list="typeList" placeholder="jupe, veste, sac…"><datalist id="typeList"></datalist></div>
+      </div>
+      <label>Moods autorisés pour les photos <span class="muted">(seules ces ambiances de la bibliothèque seront utilisées)</span></label>
+      <div class="chips" id="moodChoice"></div>
+      <div class="row"><button class="btn ghost" id="moodAll" type="button">Tout</button><button class="btn ghost" id="moodNone" type="button">Aucun</button></div>
+      <div class="row" style="margin-top:14px"><button class="btn" id="createBtn">Créer la fiche</button><span class="muted" id="createMsg"></span></div>
+    </section>
+
+    <section class="card hidden" id="jobCard">
+      <div class="row"><h2 class="grow" id="jobTitle">Fiche</h2><span class="status" id="jobStatus"></span></div>
+      <div id="jobError" class="bad"></div>
+
+      <div id="textBlock" class="hidden">
+        <h3 id="titre"></h3>
+        <p class="desc" id="desc"></p>
+        <p class="muted">Mood : <span id="mood"></span></p>
+        <div id="questions" class="card hidden"></div>
+        <div class="row">
+          <button class="btn ghost" id="copyTitle">Copier le titre</button>
+          <button class="btn ghost" id="copyDesc">Copier la description</button>
+          <span class="grow"></span>
+          <span class="muted">Cette description te convient ?</span>
+          <span id="descRating"></span>
+        </div>
+        <label>Feedback ou réponse aux questions</label>
+        <textarea id="feedbackText" placeholder="Ex. : c'est de la viscose, taille M, achetée chez Zara"></textarea>
+        <div class="row" style="margin-top:8px"><button class="btn ghost" id="refineBtn">Mettre à jour le texte</button>
+          <button class="btn" id="styleBtn">Choisir le style des photos →</button></div>
+      </div>
+
+      <div id="styleBlock" class="hidden" style="margin-top:18px;border-top:1px solid var(--line);padding-top:14px">
+        <h2>2. Style des photos</h2>
+        <div id="warnings" class="warn"></div>
+        <p class="muted">Références d'ambiance choisies (décochées = retirées) :</p>
+        <div class="thumbs" id="refs"></div>
+        <div class="row">
+          <div class="grow"><label>Mood</label><input type="text" id="moodEdit"></div>
+        </div>
+        <p class="muted" id="mannequinNote"></p>
+        <div class="row" style="margin-top:10px">
+          <button class="btn ghost" id="rerollBtn">Retirer au sort</button>
+          <button class="btn" id="validateBtn">Valider et générer les 4 photos (≈ 0,35 $)</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ========== GALERIE ========== -->
+  <div id="tab-galerie" class="hidden">
+    <section class="card">
+      <div class="row">
+        <div class="grow"><label style="margin:0">Fiche (identifiant)</label><input type="text" id="openId" placeholder="ex. mufe74xl35gs"></div>
+        <button class="btn ghost" id="openBtn">Ouvrir</button>
+      </div>
+    </section>
+    <div id="galleryBody" class="hidden">
+      <section class="card">
+        <div class="row"><h2 class="grow" id="gTitle"></h2><span class="status" id="gStatus"></span></div>
+        <p class="muted" id="gCost"></p>
+        <div id="gError" class="bad"></div>
+        <p class="desc" id="gDesc"></p>
+        <div class="row"><button class="btn ghost" id="gCopyTitle">Copier le titre</button><button class="btn ghost" id="gCopyDesc">Copier la description</button></div>
+      </section>
+      <div class="plans" id="plans"></div>
+      <section class="card" style="margin-top:16px">
+        <h2>Note finale</h2>
+        <div class="row"><span id="globalRating"></span></div>
+        <div class="chips" id="globalReasons"></div>
+        <label>Commentaire</label>
+        <textarea id="globalComment" placeholder="Qu'est-ce qui a marché, qu'est-ce qui a raté ?"></textarea>
+        <div class="row" style="margin-top:8px"><button class="btn" id="globalSend">Envoyer la note finale</button><span class="muted" id="globalMsg"></span></div>
+      </section>
+    </div>
+  </div>
+
+  <!-- ========== BIBLIOTHEQUE ========== -->
+  <div id="tab-biblio" class="hidden">
+    <section class="card">
+      <h2>Ajouter des inspirations</h2>
+      <div class="row">
+        <div class="grow"><label>Genre</label><select id="upGenre"></select></div>
+        <div class="grow"><label>Type de vêtement</label><input type="text" id="upType" list="typeList" placeholder="jupe, veste…"></div>
+      </div>
+      <label>Photos</label><input type="file" id="upFiles" accept="image/*" multiple>
+      <div class="row" style="margin-top:10px"><button class="btn" id="upBtn">Ajouter et indexer</button><span class="muted" id="upMsg"></span></div>
+    </section>
+    <section class="card">
+      <div class="row">
+        <div class="grow"><label style="margin:0">Genre</label><select id="fGenre"></select></div>
+        <div class="grow"><label style="margin:0">Type</label><select id="fType"></select></div>
+        <div class="grow"><label style="margin:0">Mood</label><select id="fMood"></select></div>
+        <label class="muted" style="margin:0"><input type="checkbox" id="fActive"> actives seulement</label>
+        <button class="btn ghost" id="libReload">Recharger</button>
+      </div>
+      <p class="muted" id="libCount"></p>
+    </section>
+    <div class="lib" id="lib"></div>
+  </div>
+</main>
+
+<dialog id="settings">
+  <h2>Réglages</h2>
+  <label>URL des webhooks n8n</label>
+  <input type="text" id="setBase">
+  <label>Secret (en-tête X-VFN-Secret)</label>
+  <input type="password" id="setSecret" autocomplete="off">
+  <p class="muted">Le secret est gardé dans ce navigateur uniquement (localStorage).</p>
+  <div class="row" style="margin-top:14px"><button class="btn" id="setSave">Enregistrer</button><button class="btn ghost" id="setCancel">Fermer</button></div>
+</dialog>
+
+<script>
+"use strict";
+const DEFAULT_BASE = "https://178-105-102-54.sslip.io/webhook/vfn";
+const PLAN_LABELS = { porte_miroir: "Porté — selfie miroir", a_plat: "À plat", cintre: "Sur cintre", detail: "Détail" };
+const STATUS_LABELS = {
+  texte_en_cours: "Rédaction du texte…", texte_pret: "Texte prêt", selection_en_cours: "Choix du style…",
+  en_attente_validation: "En attente de validation", generation_en_cours: "Génération des photos…",
+  galerie_prete: "Galerie prête", budget_depasse: "Plafond de coût atteint", termine: "Terminée", erreur: "Erreur"
+};
+const BUSY = ["texte_en_cours", "selection_en_cours", "generation_en_cours"];
+
+const $ = (s, root = document) => root.querySelector(s);
+const store = { get: k => localStorage.getItem("vfn_" + k), set: (k, v) => localStorage.setItem("vfn_" + k, v) };
+function h(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === "class") e.className = v; else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v);
+  }
+  for (const c of kids.flat()) if (c != null) e.append(c.nodeType ? c : document.createTextNode(c));
+  return e;
+}
+function toast(msg, ms = 3500) {
+  const t = h("div", { class: "toast" }, msg); document.body.append(t); setTimeout(() => t.remove(), ms);
+}
+const base = () => (store.get("base") || DEFAULT_BASE).replace(/\/$/, "");
+const authHeaders = () => ({ "X-VFN-Secret": store.get("secret") || "" });
+
+async function api(method, path, body) {
+  const opts = { method, headers: authHeaders() };
+  if (body instanceof FormData) opts.body = body;
+  else if (body) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
+  let r;
+  try { r = await fetch(base() + path, opts); } catch (e) { throw new Error("Réseau : " + e.message); }
+  const text = await r.text();
+  let data = text; try { data = JSON.parse(text); } catch (e) { /* texte brut */ }
+  if (!r.ok) {
+    const err = new Error((data && data.error) || ("HTTP " + r.status)); err.status = r.status; err.data = data;
+    if (r.status === 403) err.message = "Secret refusé : vérifie les Réglages";
+    throw err;
+  }
+  return data;
+}
+
+// ---------- images (fichiers Drive privés : récupérés avec l'en-tête secret) ----------
+const imgCache = new Map();
+let imgActive = 0; const imgQueue = [];
+function pumpImages() {
+  while (imgActive < 3 && imgQueue.length) {
+    const job = imgQueue.shift(); imgActive++;
+    fetch(base() + "/image?id=" + encodeURIComponent(job.id), { headers: authHeaders() })
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.blob(); })
+      .then(b => job.resolve(URL.createObjectURL(b))).catch(e => job.reject(e))
+      .finally(() => { imgActive--; pumpImages(); });
+  }
+}
+function imageUrl(id) {
+  if (!imgCache.has(id)) imgCache.set(id, new Promise((resolve, reject) => { imgQueue.push({ id, resolve, reject }); pumpImages(); }));
+  return imgCache.get(id);
+}
+const io = new IntersectionObserver(entries => {
+  for (const en of entries) if (en.isIntersecting) {
+    const img = en.target; io.unobserve(img);
+    imageUrl(img.dataset.id).then(u => { img.src = u; if (img.dataset.dl) img.dispatchEvent(new Event("loaded")); }).catch(() => { img.alt = "image indisponible"; });
+  }
+}, { rootMargin: "200px" });
+function lazyImg(id, cls) { const i = h("img", { class: cls || "", alt: "" }); i.dataset.id = id; io.observe(i); return i; }
+
+// ---------- état ----------
+let CONFIG = null;
+let job = null;            // dernier état connu de la fiche courante
+let pollTimer = null;
+const selectedMoods = new Set();
+let dropRefs = new Set();
+
+function fillSelect(sel, values, withAll) {
+  sel.innerHTML = "";
+  if (withAll) sel.append(h("option", { value: "" }, withAll));
+  for (const v of values) sel.append(h("option", { value: v.value ?? v }, v.label ?? v));
+}
+
+async function loadConfig() {
+  CONFIG = await api("GET", "/config");
+  const users = CONFIG.users.length ? CONFIG.users : ["Jeremy"];
+  fillSelect($("#userSel"), users);
+  $("#userSel").value = store.get("user") && users.includes(store.get("user")) ? store.get("user") : users[0];
+  fillSelect($("#genre"), CONFIG.genres); fillSelect($("#upGenre"), CONFIG.genres);
+  const allTypes = [...new Set(Object.values(CONFIG.types_par_genre).flat())].sort();
+  $("#typeList").innerHTML = ""; for (const t of allTypes) $("#typeList").append(h("option", { value: t }));
+  if (!selectedMoods.size) CONFIG.moods.forEach(m => selectedMoods.add(m.id));
+  renderMoodChoice();
+}
+
+function moodChip(m, on, onClick) {
+  return h("span", { class: "chip" + (on ? " on" : ""), title: m.definition, onclick: onClick }, m.id.replaceAll("_", " "));
+}
+function renderMoodChoice() {
+  const box = $("#moodChoice"); box.innerHTML = "";
+  for (const m of CONFIG.moods) box.append(moodChip(m, selectedMoods.has(m.id), () => { selectedMoods.has(m.id) ? selectedMoods.delete(m.id) : selectedMoods.add(m.id); renderMoodChoice(); }));
+}
+
+// ---------- onglets ----------
+function showTab(name) {
+  for (const t of ["fiche", "galerie", "biblio"]) $("#tab-" + t).classList.toggle("hidden", t !== name);
+  document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
+  store.set("tab", name);
+  if (name === "biblio" && !LIB) loadLibrary();
+  if (name === "galerie" && job) renderGallery();
+}
+document.querySelectorAll("#tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+
+// ---------- suivi d'une fiche ----------
+function stopPoll() { if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; } }
+async function refreshJob(id) {
+  job = await api("GET", "/job-status?id=" + encodeURIComponent(id));
+  store.set("job", id);
+  renderAll();
+  stopPoll();
+  if (BUSY.includes(job.statut)) pollTimer = setTimeout(() => refreshJob(id).catch(e => toast(e.message)), 3000);
+  return job;
+}
+function setStatus(el, statut) {
+  el.textContent = STATUS_LABELS[statut] || statut || "";
+  el.className = "status" + (BUSY.includes(statut) ? " busy" : "") + (statut === "erreur" || statut === "budget_depasse" ? " err" : "");
+}
+function renderAll() { renderFiche(); renderGallery(); }
+
+function ratingWidget(target, kind, container) {
+  container.innerHTML = "";
+  const cur = job.feedback && job.feedback[target];
+  const send = async (note, raisons, commentaire) => {
+    try { await api("POST", "/job/feedback", { job_id: job.job_id, cible: target, note, raisons: raisons || [], commentaire: commentaire || "" }); toast("Avis enregistré"); await refreshJob(job.job_id); }
+    catch (e) { toast(e.message); }
+  };
+  const up = h("button", { class: "thumb-btn" + (cur && cur.note === "👍" ? " on" : ""), onclick: () => send("up") }, "👍");
+  const down = h("button", { class: "thumb-btn" + (cur && cur.note === "👎" ? " on" : ""), onclick: () => box.classList.toggle("hidden") }, "👎");
+  const box = h("div", { class: "hidden", style: "flex-basis:100%" });
+  const chosen = new Set(cur && cur.note === "👎" ? cur.raisons : []);
+  const chipsBox = h("div", { class: "chips" });
+  const drawChips = () => { chipsBox.innerHTML = ""; for (const r of (CONFIG.raisons[kind] || [])) chipsBox.append(h("span", { class: "chip" + (chosen.has(r) ? " on" : ""), onclick: () => { chosen.has(r) ? chosen.delete(r) : chosen.add(r); drawChips(); } }, r.replaceAll("_", " "))); };
+  drawChips();
+  const comment = h("input", { type: "text", placeholder: "Précision (facultatif)", value: cur && cur.note === "👎" ? cur.commentaire : "" });
+  box.append(chipsBox, comment, h("button", { class: "btn ghost", style: "margin-top:6px", onclick: () => send("down", [...chosen], comment.value) }, "Envoyer le 👎"));
+  container.append(up, down, box);
+}
+
+// ----- page fiche -----
+function renderFiche() {
+  const has = !!job;
+  $("#jobCard").classList.toggle("hidden", !has);
+  if (!has) return;
+  $("#jobTitle").textContent = "Fiche " + job.job_id;
+  setStatus($("#jobStatus"), job.statut);
+  $("#jobError").textContent = job.erreur || "";
+  const textReady = !!job.titre;
+  $("#textBlock").classList.toggle("hidden", !textReady);
+  if (textReady) {
+    $("#titre").textContent = job.titre; $("#desc").textContent = job.description; $("#mood").textContent = job.mood;
+    const q = $("#questions"); q.classList.toggle("hidden", !job.questions.length);
+    q.innerHTML = ""; if (job.questions.length) q.append(h("strong", {}, "Questions du modèle"), h("ul", {}, job.questions.map(x => h("li", {}, x))));
+    ratingWidget("description", "description", $("#descRating"));
+    const busy = BUSY.includes(job.statut);
+    for (const id of ["refineBtn", "styleBtn"]) $("#" + id).disabled = busy;
+  }
+  const inStyle = ["en_attente_validation", "selection_en_cours"].includes(job.statut) || (job.decor_refs && job.decor_refs.length && ["en_attente_validation"].includes(job.statut));
+  $("#styleBlock").classList.toggle("hidden", job.statut !== "en_attente_validation");
+  if (job.statut === "en_attente_validation") {
+    $("#warnings").textContent = (job.avertissements || []).join(" — ");
+    const box = $("#refs"); box.innerHTML = "";
+    if (!dropRefsFor || dropRefsFor !== job.job_id + ":" + (job.decor_refs || []).map(r => r.file_id).join(",")) { dropRefs = new Set(); dropRefsFor = job.job_id + ":" + (job.decor_refs || []).map(r => r.file_id).join(","); }
+    for (const r of job.decor_refs || []) {
+      const cb = h("input", { type: "checkbox" }); cb.checked = !dropRefs.has(r.file_id);
+      cb.addEventListener("change", () => cb.checked ? dropRefs.delete(r.file_id) : dropRefs.add(r.file_id));
+      box.append(h("label", { style: "margin:0;color:var(--ink)" }, lazyImg(r.file_id), h("div", { class: "muted" }, cb, " ", r.nom_fichier)));
+    }
+    if (!(job.decor_refs || []).length) box.append(h("span", { class: "muted" }, "Aucune référence : ambiance guidée par le mood seul."));
+    $("#moodEdit").value = job.mood || "";
+    $("#mannequinNote").textContent = job.mannequin_file_id ? "Mannequin maison associé au plan porté." : "";
+  }
+}
+let dropRefsFor = "";
+
+// ----- page galerie -----
+function renderGallery() {
+  $("#galleryBody").classList.toggle("hidden", !job);
+  if (!job) return;
+  $("#openId").value = job.job_id;
+  $("#gTitle").textContent = job.titre || ("Fiche " + job.job_id);
+  setStatus($("#gStatus"), job.statut);
+  $("#gCost").textContent = "Coût : " + job.cout_total.toFixed(3) + " $ (texte " + job.cout_texte.toFixed(4) + " $, images " + job.cout_images.toFixed(3) + " $) · plafond " + (CONFIG ? CONFIG.plafond_usd : 1) + " $";
+  $("#gError").textContent = job.erreur || "";
+  $("#gDesc").textContent = job.description || "";
+  const box = $("#plans"); box.innerHTML = "";
+  for (const p of job.plans) {
+    const card = h("div", { class: "card plan" });
+    card.append(h("h3", {}, PLAN_LABELS[p.plan] || p.plan));
+    if (p.statut === "pret") {
+      const img = lazyImg(p.drive_file_id, "shot"); card.append(img);
+      const meta = h("div", { class: "bar" });
+      if (!p.fidelite_verifiee) meta.append(h("span", { class: "warn" }, "Fidélité non vérifiée"));
+      else if (p.fidelite_ok) meta.append(h("span", { class: "good" }, "✓ Fidèle au vêtement"));
+      else meta.append(h("span", { class: "warn" }, "⚠ Dérive possible"));
+      meta.append(h("span", { class: "muted" }, p.fournisseur + " · " + p.tentatives_total + " essai(s) · " + p.cout_plan.toFixed(2) + " $"));
+      card.append(meta);
+      if (p.problemes && p.problemes.length && !p.fidelite_ok) card.append(h("div", { class: "warn" }, p.problemes.join(" ; ")));
+      const keep = h("input", { type: "checkbox" }); keep.checked = p.garde;
+      keep.addEventListener("change", async () => { try { await api("POST", "/job/garder", { job_id: job.job_id, plan: p.plan, garde: keep.checked }); } catch (e) { toast(e.message); keep.checked = !keep.checked; } });
+      const dl = h("a", { class: "muted", href: "#", download: p.plan + ".jpg" }, "Télécharger");
+      dl.addEventListener("click", async ev => { ev.preventDefault(); dl.href = await imageUrl(p.drive_file_id); dl.removeAttribute("onclick"); const a = h("a", { href: dl.href, download: (job.job_id + "_" + p.plan + ".jpg") }); document.body.append(a); a.click(); a.remove(); });
+      card.append(h("div", { class: "bar" }, h("label", { style: "margin:0;color:var(--ink)" }, keep, " Garder"), dl));
+    } else if (p.statut === "erreur") {
+      card.append(h("div", { class: "ph" }, "Échec : " + p.erreur));
+    } else {
+      card.append(h("div", { class: "ph" }, BUSY.includes(job.statut) ? "En cours…" : "En attente"));
+    }
+    if (["galerie_prete", "budget_depasse", "termine"].includes(job.statut)) {
+      const rate = h("div", { class: "bar" }); card.append(rate); ratingWidget("plan:" + p.plan, "plan", rate);
+      const fb = h("input", { type: "text", placeholder: "Consigne pour régénérer (facultatif)" });
+      const force = job.statut === "budget_depasse" ? h("input", { type: "checkbox" }) : null;
+      const btn = h("button", { class: "btn ghost", onclick: async () => {
+        btn.disabled = true;
+        try { await api("POST", "/job/plan", { job_id: job.job_id, plan: p.plan, feedback: fb.value, force: !!(force && force.checked) }); toast("Régénération lancée"); await refreshJob(job.job_id); }
+        catch (e) { toast(e.message); btn.disabled = false; }
+      } }, "Régénérer");
+      card.append(fb, h("div", { class: "bar" }, btn, force ? h("label", { style: "margin:0;color:var(--ink)" }, force, " dépasser le plafond") : null));
+    }
+    box.append(card);
+  }
+  // note finale
+  const fb = job.feedback && job.feedback.global;
+  $("#globalRating").innerHTML = "";
+  const gUp = h("button", { class: "thumb-btn" + (fb && fb.note === "👍" ? " on" : ""), onclick: () => { globalNote = "up"; renderGlobal(); } }, "👍");
+  const gDown = h("button", { class: "thumb-btn" + (fb && fb.note === "👎" ? " on" : ""), onclick: () => { globalNote = "down"; renderGlobal(); } }, "👎");
+  $("#globalRating").append(gUp, gDown);
+  if (fb && !globalNote) { globalNote = fb.note === "👍" ? "up" : "down"; $("#globalComment").value = fb.commentaire || ""; globalReasons = new Set(fb.raisons || []); }
+  renderGlobal();
+}
+let globalNote = null; let globalReasons = new Set();
+function renderGlobal() {
+  const [up, down] = $("#globalRating").children;
+  if (up) { up.classList.toggle("on", globalNote === "up"); down.classList.toggle("on", globalNote === "down"); }
+  const box = $("#globalReasons"); box.innerHTML = "";
+  if (globalNote === "down" && CONFIG) for (const r of CONFIG.raisons.global || []) box.append(h("span", { class: "chip" + (globalReasons.has(r) ? " on" : ""), onclick: () => { globalReasons.has(r) ? globalReasons.delete(r) : globalReasons.add(r); renderGlobal(); } }, r.replaceAll("_", " ")));
+}
+
+// ---------- actions : fiche ----------
+$("#photos").addEventListener("change", () => {
+  const box = $("#photoPreview"); box.innerHTML = "";
+  for (const f of $("#photos").files) box.append(h("img", { src: URL.createObjectURL(f) }));
+});
+$("#moodAll").addEventListener("click", () => { CONFIG.moods.forEach(m => selectedMoods.add(m.id)); renderMoodChoice(); });
+$("#moodNone").addEventListener("click", () => { selectedMoods.clear(); renderMoodChoice(); });
+$("#userSel").addEventListener("change", () => store.set("user", $("#userSel").value));
+
+$("#createBtn").addEventListener("click", async () => {
+  const files = [...$("#photos").files];
+  if (!files.length) return toast("Ajoute au moins une photo");
+  if (!$("#type").value.trim()) return toast("Indique le type de vêtement");
+  const fd = new FormData();
+  fd.append("user", $("#userSel").value); fd.append("genre", $("#genre").value); fd.append("type_vetement", $("#type").value.trim());
+  fd.append("moods_autorises", JSON.stringify([...selectedMoods]));
+  files.forEach((f, i) => fd.append("photo" + i, f, f.name));
+  $("#createBtn").disabled = true; $("#createMsg").textContent = "Envoi des photos…";
+  try {
+    const r = await api("POST", "/job", fd);
+    dropRefsFor = ""; globalNote = null; globalReasons = new Set(); $("#globalComment").value = "";
+    $("#createMsg").textContent = "";
+    await refreshJob(r.job_id);
+  } catch (e) { toast(e.message); $("#createMsg").textContent = e.message; }
+  $("#createBtn").disabled = false;
+});
+$("#refineBtn").addEventListener("click", async () => {
+  const msg = $("#feedbackText").value.trim(); if (!msg) return toast("Écris un feedback ou une réponse");
+  try { await api("POST", "/job/texte", { job_id: job.job_id, message: msg }); $("#feedbackText").value = ""; await refreshJob(job.job_id); } catch (e) { toast(e.message); }
+});
+async function startStyle() {
+  try { await api("POST", "/job/style", { job_id: job.job_id, moods_autorises: [...selectedMoods] }); dropRefsFor = ""; await refreshJob(job.job_id); } catch (e) { toast(e.message); }
+}
+$("#styleBtn").addEventListener("click", startStyle);
+$("#rerollBtn").addEventListener("click", startStyle);
+$("#validateBtn").addEventListener("click", async () => {
+  const refs = (job.decor_refs || []).map(r => r.file_id).filter(id => !dropRefs.has(id));
+  try {
+    await api("POST", "/job/valider", { job_id: job.job_id, mood: $("#moodEdit").value, decor_refs: refs });
+    await refreshJob(job.job_id); showTab("galerie");
+  } catch (e) { toast(e.message); }
+});
+const copy = async (text, what) => { try { await navigator.clipboard.writeText(text); toast(what + " copié"); } catch (e) { toast("Copie impossible"); } };
+$("#copyTitle").addEventListener("click", () => copy(job.titre, "Titre"));
+$("#copyDesc").addEventListener("click", () => copy(job.description, "Description"));
+$("#gCopyTitle").addEventListener("click", () => copy(job.titre, "Titre"));
+$("#gCopyDesc").addEventListener("click", () => copy(job.description, "Description"));
+$("#openBtn").addEventListener("click", async () => {
+  const id = $("#openId").value.trim(); if (!id) return;
+  try { globalNote = null; globalReasons = new Set(); $("#globalComment").value = ""; await refreshJob(id); } catch (e) { toast(e.message); }
+});
+$("#globalSend").addEventListener("click", async () => {
+  if (!globalNote) return toast("Choisis 👍 ou 👎");
+  try {
+    await api("POST", "/job/feedback", { job_id: job.job_id, cible: "global", note: globalNote, raisons: [...globalReasons], commentaire: $("#globalComment").value });
+    $("#globalMsg").textContent = "Merci, fiche clôturée."; await refreshJob(job.job_id);
+  } catch (e) { toast(e.message); }
+});
+
+// ---------- bibliothèque ----------
+let LIB = null;
+async function loadLibrary() {
+  try { LIB = (await api("GET", "/library")).items; } catch (e) { return toast(e.message); }
+  const genres = [...new Set(LIB.map(i => i.genre))].sort(), types = [...new Set(LIB.map(i => i.type_vetement))].sort();
+  const keep = { g: $("#fGenre").value, t: $("#fType").value, m: $("#fMood").value };
+  fillSelect($("#fGenre"), genres, "Tous"); fillSelect($("#fType"), types, "Tous");
+  fillSelect($("#fMood"), CONFIG.moods.map(m => ({ value: m.id, label: m.id.replaceAll("_", " ") })), "Tous");
+  $("#fGenre").value = keep.g; $("#fType").value = keep.t; $("#fMood").value = keep.m;
+  renderLibrary();
+}
+function renderLibrary() {
+  const g = $("#fGenre").value, t = $("#fType").value, m = $("#fMood").value, onlyActive = $("#fActive").checked;
+  const list = LIB.filter(i => (!g || i.genre === g) && (!t || i.type_vetement === t) && (!m || i.moods.includes(m)) && (!onlyActive || i.actif));
+  $("#libCount").textContent = list.length + " photo(s) sur " + LIB.length;
+  const box = $("#lib"); box.innerHTML = "";
+  for (const it of list) {
+    const card = h("div", { class: "card item" + (it.actif ? "" : " off") });
+    const chips = h("div", { class: "chips" });
+    const draw = () => { chips.innerHTML = ""; for (const mm of CONFIG.moods) chips.append(moodChip(mm, it.moods.includes(mm.id), async () => {
+      const next = it.moods.includes(mm.id) ? it.moods.filter(x => x !== mm.id) : [...it.moods, mm.id];
+      if (next.length > 3) return toast("3 moods maximum par photo");
+      try { const r = await api("POST", "/library/update", { drive_file_id: it.drive_file_id, moods: next }); it.moods = r.moods; draw(); } catch (e) { toast(e.message); }
+    })); };
+    draw();
+    const active = h("input", { type: "checkbox" }); active.checked = it.actif;
+    active.addEventListener("change", async () => {
+      try { const r = await api("POST", "/library/update", { drive_file_id: it.drive_file_id, actif: active.checked }); it.actif = r.actif; card.classList.toggle("off", !it.actif); }
+      catch (e) { toast(e.message); active.checked = !active.checked; }
+    });
+    card.append(lazyImg(it.drive_file_id), h("div", { class: "muted", style: "margin-top:6px" }, it.genre + " · " + it.type_vetement), chips,
+      h("div", { class: "muted", title: it.description }, it.tags.join(", ")), h("label", { style: "color:var(--ink)" }, active, " active"));
+    box.append(card);
+  }
+}
+for (const id of ["fGenre", "fType", "fMood", "fActive"]) $("#" + id).addEventListener("change", () => LIB && renderLibrary());
+$("#libReload").addEventListener("click", loadLibrary);
+$("#upBtn").addEventListener("click", async () => {
+  const files = [...$("#upFiles").files]; const type = $("#upType").value.trim();
+  if (!files.length || !type) return toast("Choisis un type et au moins une photo");
+  const fd = new FormData(); fd.append("genre", $("#upGenre").value); fd.append("type_vetement", type);
+  files.forEach((f, i) => fd.append("photo" + i, f, f.name));
+  $("#upBtn").disabled = true; $("#upMsg").textContent = "Envoi…";
+  try {
+    const r = await api("POST", "/library/upload", fd);
+    $("#upMsg").textContent = r.photos + " photo(s) envoyée(s), indexation en cours (environ 5 s par photo). Recharge dans un instant.";
+    $("#upFiles").value = ""; setTimeout(() => loadLibrary(), 20000);
+  } catch (e) { $("#upMsg").textContent = e.message; toast(e.message); }
+  $("#upBtn").disabled = false;
+});
+
+// ---------- réglages & démarrage ----------
+function openSettings() { $("#setBase").value = base(); $("#setSecret").value = store.get("secret") || ""; $("#settings").showModal(); }
+$("#settingsBtn").addEventListener("click", openSettings);
+$("#setCancel").addEventListener("click", () => $("#settings").close());
+$("#setSave").addEventListener("click", async () => {
+  store.set("base", $("#setBase").value.trim() || DEFAULT_BASE); store.set("secret", $("#setSecret").value.trim());
+  $("#settings").close(); start();
+});
+
+async function start() {
+  if (!store.get("secret")) { openSettings(); return; }
+  try { await loadConfig(); } catch (e) { toast(e.message, 6000); return; }
+  showTab(store.get("tab") || "fiche");
+  const last = store.get("job");
+  if (last) refreshJob(last).catch(() => {});
+}
+start();
+</script>
+</body>
+</html>

@@ -102,3 +102,29 @@ Limites connues : si une étape plante hors des cas prévus (ex. Drive indisponi
 Test réel sur `mufe74xl35gs` : 👍 description, puis changement d'avis en 👎 « trop court » (remplacé, pas dupliqué) ; 👎 sur `porte_miroir` avec raison et commentaire ; raison inconnue → 400 ; job inconnu → 404 ; « garder » décoché sur `porte_miroir` ; note finale 👍 avec commentaire → statut `termine` ; `log.json` créé dans le dossier du job (17 Ko).
 
 Limite : si les 4 plans finissent au même instant, deux `log.json` pourraient être créés la première fois (risque faible, sans conséquence sur les données).
+
+## Étape 6 — Front HTML et endpoints associés (2026-09-24)
+
+Front : `front/index.html`, un seul fichier sans dépendance. Il se lance en local (`cd poc-annonces-n8n/front && python3 -m http.server 8765`, puis http://127.0.0.1:8765) ou en l'ouvrant directement. Au premier lancement, la fenêtre **Réglages** demande l'URL des webhooks (par défaut `https://178-105-102-54.sslip.io/webhook/vfn`) et le secret ; ils sont gardés dans le `localStorage` du navigateur, jamais dans le fichier. Sélecteur d'utilisateur en haut (liste lue dans la table `users`).
+
+- **Nouvelle fiche** : photos, genre, type (suggestions issues de la bibliothèque), moods autorisés (cases à cocher) → texte (avec questions du modèle, feedback en langage libre, 👍/👎 avec raisons, copie du titre et de la description) → choix du style (références avec case pour les retirer, mood éditable, avertissements, « retirer au sort ») → validation, qui ouvre la galerie.
+- **Galerie** : ouverture d'une fiche par identifiant ; les 4 plans avec avertissement de fidélité, coût par plan et total, « Garder », téléchargement, 👍/👎 avec raisons, régénération avec consigne (case « dépasser le plafond » si nécessaire), note finale avec commentaire. Rafraîchissement automatique pendant les étapes longues.
+- **Bibliothèque** : grille filtrable (genre, type, mood, actives), moods modifiables d'un clic (3 maximum par photo), activer/désactiver, ajout de photos (genre + type, dossier Drive créé si besoin, indexation LLM lancée automatiquement).
+
+Les images Drive étant privées, le front les récupère avec l'en-tête secret et les affiche depuis des URL locales (chargement différé, 3 requêtes en parallèle).
+
+Nouveaux workflows (webhooks protégés par secret) :
+
+| Workflow | ID | Endpoint |
+|---|---|---|
+| `VFN — Configuration pour le front` | `fES1vA8Ak6Vz9N6K` | `GET /config` : moods (avec définitions), users, genres, types connus par genre, plans, vocabulaire des raisons, plafond |
+| `VFN — Lire la bibliothèque` | `g1m9isMxo3gWGuV3` | `GET /library` |
+| `VFN — Modifier une photo de la bibliothèque` | `kNGZI3ZZSRlckkgP` | `POST /library/update` `{drive_file_id, moods?, tags?, actif?}` (moods validés contre la liste fermée, 3 maximum) |
+| `VFN — Ajouter des inspirations` | `a6h3K0SfbhFY4cBp` | `POST /library/upload` multipart (`genre`, `type_vetement`, `photo0`…) puis indexation |
+| `VFN — Aperçu d'une image Drive` | `XKXHym7UwzHoh6in` | `GET /image?id=` : image réduite (jpeg 1000 px) ; refuse (404) tout identifiant qui n'est ni dans la bibliothèque, ni dans les plans générés, ni un mannequin configuré |
+
+L'indexation (`k7j9FcAjqQKLYCj1`) a un troisième déclencheur (appel depuis un autre workflow) pour le dépôt de photos.
+
+Testé : endpoints en `curl` ; front dans le navigateur intégré sur une fiche réelle (galerie avec les 4 images, états 👍/👎/garder relus depuis le serveur, bibliothèque de 23 photos avec chargement différé) ; création d'une nouvelle fiche par le formulaire puis choix du style. Non testés dans l'interface : la validation finale depuis le formulaire (~0,35 $), l'upload de nouvelles inspirations, le repli sur un secret erroné.
+
+Limite : le fichier `front/index.html` n'a pas de style final ; c'est le fond fonctionnel, à habiller dans la phase design.
