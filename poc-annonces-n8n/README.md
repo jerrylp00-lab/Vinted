@@ -38,3 +38,22 @@ Prompts créés dans la table `prompts` (v1, actifs) : `moods_liste` (10 moods, 
 Résultat : 23 photos indexées en 55 s, environ 0,0003 $ chacune. Une seconde exécution n'indexe rien (idempotent).
 
 À faire plus tard pour l'étape 1 : trigger sur le dossier `_inbox` et endpoint d'upload (avec le front, étape 6), export JSON des workflows dans `workflows/`, pagination Drive au-delà de 1000 éléments par niveau.
+
+## Étape 2 — Texte de la fiche (2026-09-24)
+
+Workflows (tous publiés, webhooks protégés par `X-VFN-Secret`, CORS ouvert) :
+
+| Workflow | ID | Rôle |
+|---|---|---|
+| `VFN — Créer une fiche (webhook)` | `5erMviLZ0qLPtd1E` | `POST /webhook/vfn/job` (multipart : `user`, `genre`, `type_vetement`, `moods_autorises` en JSON, photos `photo0`, `photo1`…). Répond tout de suite `{job_id}`, crée le dossier Drive `VFN Fiches/<date>_<job_id>/input/`, enregistre le job, envoie les photos, lance la génération. |
+| `VFN — Générer le texte (sous-workflow)` | `gdGJLLnGtW79Jeol` | Relit les photos du dossier `input`, assemble le prompt actif `texte_fiche` + profil du user + historique, appelle `google/gemini-2.5-flash-lite`, met à jour le job (`texte_pret` ou `erreur`) et le coût. |
+| `VFN — Affiner le texte (webhook)` | `bRdAbgJiiGKwNyvP` | `POST /webhook/vfn/job/texte` `{job_id, message}` : ajoute la réponse ou le feedback à l'historique et régénère. |
+| `VFN — Lire une fiche (statut)` | `3EkEko4Qo2ofd7LK` | `GET /webhook/vfn/job-status?id=<job_id>` (polling du front). 404 si inconnu. |
+
+Écart avec la spec : le statut est `GET /job-status?id=` et non `GET /job/:id` (un chemin dynamique préfixerait l'URL d'un identifiant de webhook).
+
+Ajouts à `jobs` : `genre`, `type_vetement`, `drive_input_folder_id`, `questions` (JSON), `historique` (JSON, messages `user`/`assistant`). Prompt `texte_fiche` v1 dans `prompts` (`{profil}` remplacé par `users.preferences_md`). Dossier Drive racine des journaux : `VFN Fiches` (`1BupqpOHcBFnoILebfox-GjVTlm_gz-AB`, hors de la bibliothèque pour ne pas être indexé).
+
+Test réalisé : sur un job de test (`test1`, photos de la bibliothèque), génération en 8 s pour 0,0002 $, puis affinage avec un message utilisateur (la marque et la taille ont été intégrées). Le webhook de création (upload multipart) n'a pas encore été appelé pour de vrai : `scripts/test_job.sh` le fait (`VFN_SECRET=... ./scripts/test_job.sh femme jupe photo1.jpg …`).
+
+Reste : la ligne de job `test1` est un reste de test dans la table `jobs` (à supprimer depuis l'UI n8n) ; `decor_refs` est vide jusqu'à l'étape 3.
