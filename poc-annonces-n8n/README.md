@@ -184,6 +184,6 @@ Limites : les exemples ne sont pas filtrés par utilisateur (toutes les annonces
 
 ## Étape 9 — refonte coût / mood / texte (2026-09-25)
 
-Référence avant : job `mufe74xl35gs`, 0,56 $ (étape 4) ; jeu de test : `Test_humain/Gemini/Input` (t-shirt Peggy Sue's, texte visible).
+Référence avant : job `mufe74xl35gs`, mesuré le 2026-09-25 : cout_total=0.5610621, cout_images=0.56076, cout_texte≈0.0003 ; jeu de test : `Test_humain/Gemini/Input` (t-shirt Peggy Sue's, texte visible, photos non commitées).
 
 Script de mesure de coût : `scripts/measure_cost.sh <job_id>` (lit VFN_SECRET depuis `.env` ou l'environnement).

@@ -21,5 +21,41 @@ fi
 
 JOB_ID="${1:?Usage: $0 <job_id>}"
 
-curl -sf -H "X-VFN-Secret: ${VFN_SECRET}" "$BASE/job-status?id=$JOB_ID" \
-  | python3 -c 'import json,sys; j=json.load(sys.stdin); print(f"statut={j.get(\"statut\")}, cout_texte={j.get(\"cout_texte\")}, cout_images={j.get(\"cout_images\")}, cout_total={j.get(\"cout_total\")}"); print("plans:"); [print(f"  {p[\"plan\"]}: {p.get(\"cout\")} ({p.get(\"fournisseur\")})") for p in j.get("plans",[])]'
+# Fetch and save response to tempfile
+TMPFILE=$(mktemp)
+trap "rm -f $TMPFILE" EXIT
+
+curl -sS --fail-with-body -H "X-VFN-Secret: ${VFN_SECRET}" "$BASE/job-status?id=$JOB_ID" > "$TMPFILE" || {
+  echo "Erreur lors de la requête à $BASE/job-status?id=$JOB_ID" >&2
+  exit 1
+}
+
+# Parse JSON response
+python3 - "$TMPFILE" <<'PY'
+import json
+import sys
+
+tmpfile = sys.argv[1]
+try:
+    with open(tmpfile, 'r') as f:
+        data = json.load(f)
+except json.JSONDecodeError as e:
+    print(f"Erreur de parsing JSON: {e}", file=sys.stderr)
+    sys.exit(1)
+
+# Output main status line
+statut = data.get("statut", "")
+cout_texte = data.get("cout_texte", 0)
+cout_images = data.get("cout_images", 0)
+cout_total = data.get("cout_total", 0)
+print(f"statut={statut} cout_texte={cout_texte} cout_images={cout_images} cout_total={cout_total}")
+
+# Output plan details
+plans = data.get("plans", [])
+for plan in plans:
+    plan_name = plan.get("plan", "")
+    plan_cost = plan.get("cout", 0)
+    plan_provider = plan.get("fournisseur", "")
+    print(f"{plan_name} {plan_cost} {plan_provider}")
+PY
+
