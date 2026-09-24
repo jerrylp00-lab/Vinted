@@ -641,7 +641,9 @@ function renderGallery() {
   $("#gError").textContent = job.erreur || "";
   $("#gDesc").textContent = job.description || "";
   const box = $("#plans"); box.innerHTML = "";
-  const origUrl = inputPhotos.get(job.job_id);
+  const origId = (job.input_photo_ids || [])[0];
+  const origUrl = origId ? null : inputPhotos.get(job.job_id);
+  const origFig = () => origId ? origFigure(imageUrl(origId)) : origFigure(origUrl);
   for (const p of job.plans) {
     const card = h("div", { class: "card plan" });
     card.append(h("h3", {}, PLAN_LABELS[p.plan] || p.plan));
@@ -663,12 +665,12 @@ function renderGallery() {
           const a = h("a", { href: u, download: job.job_id + "_" + p.plan + (raw ? "_brut" : "") + ".jpg" }); document.body.append(a); a.click(); a.remove();
         } catch (e) { toast("Téléchargement impossible : " + e.message); }
       });
-      card.append(h("div", { class: "pair" }, origFigure(origUrl), right));
+      card.append(h("div", { class: "pair" }, origFig(), right));
       card.append(h("div", { class: "bar" }, h("span", { class: "muted" }, p.fournisseur + " · " + (p.cout_plan || 0).toFixed(2) + " $")));
       card.append(h("div", { class: "bar" }, h("label", { style: "margin:0;color:var(--ink)" }, keep, " Garder"), rawBtn, dl));
     } else {
       right = h("div", { class: "ph" }, p.statut === "erreur" ? "Échec : " + p.erreur : BUSY.includes(job.statut) ? "En cours…" : "En attente");
-      card.append(h("div", { class: "pair" }, origFigure(origUrl), h("figure", {}, right)));
+      card.append(h("div", { class: "pair" }, origFig(), h("figure", {}, right)));
     }
     if (["galerie_prete", "budget_depasse", "termine"].includes(job.statut)) {
       const rate = h("div", { class: "bar" }); card.append(rate); ratingWidget("plan:" + p.plan, "plan", rate);
@@ -700,9 +702,12 @@ function renderGallery() {
   if (fb && !globalNote) { globalNote = fb.note === "👍" ? "up" : "down"; $("#globalComment").value = fb.commentaire || ""; globalReasons = new Set(fb.raisons || []); }
   renderGlobal();
 }
-// Photo d'origine : aucun endpoint ne sert les photos d'entrée d'une fiche ; on garde la 1re en mémoire à la création.
+// Photo d'origine : 1re de input_photo_ids (via /image) ; repli sur la photo gardée en mémoire si la liste est vide.
 function origFigure(url) {
-  return url ? h("figure", {}, h("img", { class: "orig", src: url, alt: "photo d'origine" }), h("figcaption", {}, "Photo d'origine")) : null;
+  if (!url) return null;
+  const img = h("img", { class: "orig", alt: "photo d'origine" });
+  Promise.resolve(url).then(u => { img.src = u; }).catch(() => { img.alt = "photo d'origine indisponible"; });
+  return h("figure", {}, img, h("figcaption", {}, "Photo d'origine"));
 }
 let globalNote = null; let globalReasons = new Set();
 function renderGlobal() {
