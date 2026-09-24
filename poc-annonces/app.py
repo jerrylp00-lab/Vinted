@@ -8,12 +8,11 @@ photos de sortie.
 
 from __future__ import annotations
 
-import os
-
 import streamlit as st
 from dotenv import load_dotenv
 
 from decor_selection import DecorSelectionError, select_decor_refs
+from drive_client import build_drive_service
 from library import LibraryError, load_index
 from listing import DEFAULT_MODEL, FALLBACK_MODELS, ListingError, generate_listing_draft
 from photo_generation import PhotoGenerationError, generate_listing_photos
@@ -106,17 +105,6 @@ def _load_decor_index():
     return load_index()
 
 
-def _build_drive_service():
-    from google.oauth2 import service_account
-    from googleapiclient.discovery import build as build_google_service
-
-    credentials_path = os.environ["GOOGLE_SERVICE_ACCOUNT_FILE"]
-    creds = service_account.Credentials.from_service_account_file(
-        credentials_path, scopes=["https://www.googleapis.com/auth/drive.readonly"]
-    )
-    return build_google_service("drive", "v3", credentials=creds, cache_discovery=False)
-
-
 if st.session_state.draft is not None and not st.session_state.draft.questions:
     st.divider()
     st.subheader("Style et photos (PoC-2)")
@@ -128,7 +116,7 @@ if st.session_state.draft is not None and not st.session_state.draft.questions:
     if st.button("Choisir le style depuis la bibliothèque"):
         try:
             index_entries = _load_decor_index()
-            service = _build_drive_service()
+            service = build_drive_service()
             st.session_state.draft = select_decor_refs(
                 genre, type_vetement, st.session_state.draft, index_entries, service
             )

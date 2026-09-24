@@ -10,20 +10,11 @@ from __future__ import annotations
 import os
 
 from dotenv import load_dotenv
-from google.oauth2 import service_account
-from googleapiclient.discovery import build
 
+from drive_client import build_drive_service
 from library import index_library, save_index
 
 load_dotenv()
-
-SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
-
-
-def build_drive_service():
-    credentials_path = os.environ["GOOGLE_SERVICE_ACCOUNT_FILE"]
-    creds = service_account.Credentials.from_service_account_file(credentials_path, scopes=SCOPES)
-    return build("drive", "v3", credentials=creds, cache_discovery=False)
 
 
 def main() -> None:

@@ -30,11 +30,18 @@ OPENROUTER_API_KEY=sk-or-...
 # optionnel, sinon google/gemini-2.5-flash-lite par défaut
 OPENROUTER_MODEL=google/gemini-2.5-flash-lite
 
-# PoC-2 uniquement
+# PoC-2 uniquement — GOOGLE_SERVICE_ACCOUNT_FILE (chemin, pratique en
+# local) ou GOOGLE_SERVICE_ACCOUNT_JSON (contenu JSON inline, pratique
+# avec le secret manager d'une plateforme de déploiement type Streamlit
+# Community Cloud — jamais les deux, GOOGLE_SERVICE_ACCOUNT_JSON prime)
 GOOGLE_SERVICE_ACCOUNT_FILE=/chemin/vers/service-account.json
 GOOGLE_DRIVE_ROOT_FOLDER_ID=<id du dossier "Modèles photos">
 FAL_KEY=<clé api fal.ai>
 ```
+
+Ni le fichier JSON ni son contenu ne doivent jamais être commités sur
+GitHub — en local via `.env` (gitignoré), en déploiement via le secret
+manager de la plateforme (jamais dans le code ni dans le repo).
 
 Lancer les tests (aucune clé API requise, tout est mocké) :
 
