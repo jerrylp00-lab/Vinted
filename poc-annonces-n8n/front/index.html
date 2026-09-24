@@ -48,9 +48,27 @@
   .warn { color: var(--warn); font-size: 13px; }
   .bad { color: var(--bad); font-size: 13px; }
   .good { color: var(--good); font-size: 13px; }
-  .plans { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
-  .plan img.shot { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); background: var(--chip); display: block; }
+  .plans { display: grid; grid-template-columns: 1fr; gap: 14px; }
+  .plan .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 760px; }
+  .plan .pair figure { margin: 0; }
+  .plan .pair figcaption { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .plan img.shot, .plan img.orig { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); background: var(--chip); display: block; }
   .plan .ph { width: 100%; aspect-ratio: 3/4; border-radius: 10px; background: var(--chip); display: grid; place-items: center; color: var(--muted); font-size: 13px; text-align: center; padding: 10px; }
+  .grid-inspi { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-top: 8px; }
+  .grid-inspi .item { padding: 8px; margin: 0; border: 2px solid var(--line); }
+  .grid-inspi .item.vision { border-color: var(--accent); }
+  .grid-inspi .item.texte { border-color: var(--warn); }
+  .grid-inspi img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 8px; background: var(--chip); display: block; }
+  .grid-inspi .chips .chip { font-size: 11px; padding: 1px 7px; }
+  .seg { display: flex; gap: 4px; margin-top: 6px; }
+  .seg button { flex: 1; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 8px; padding: 4px 6px; font: inherit; font-size: 12.5px; cursor: pointer; }
+  .seg button.on.v { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .seg button.on.t { background: var(--warn); color: #fff; border-color: var(--warn); }
+  .linkbtn { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-size: 12.5px; cursor: pointer; text-decoration: underline; margin-top: 6px; }
+  .review { margin-top: 16px; padding: 14px; border: 2px solid var(--accent); border-radius: 12px; }
+  .review .thumbs img { height: 150px; }
+  .review ol { padding-left: 20px; margin: 6px 0; }
+  .review li { margin-bottom: 6px; font-size: 13px; }
   .plan .bar { display: flex; gap: 8px; align-items: center; margin: 8px 0 4px; flex-wrap: wrap; }
   .thumb-btn { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 3px 9px; cursor: pointer; font-size: 16px; }
   .thumb-btn.on { border-color: var(--accent); background: var(--chip); }
@@ -93,9 +111,17 @@
         <div class="grow"><label>Genre</label><select id="genre"></select></div>
         <div class="grow"><label>Type de vêtement</label><input type="text" id="type" list="typeList" placeholder="jupe, veste, sac…"><datalist id="typeList"></datalist></div>
       </div>
-      <label>Moods autorisés pour les photos <span class="muted">(seules ces ambiances de la bibliothèque seront utilisées)</span></label>
-      <div class="chips" id="moodChoice"></div>
-      <div class="row"><button class="btn ghost" id="moodAll" type="button">Tout</button><button class="btn ghost" id="moodNone" type="button">Aucun</button></div>
+      <div class="row">
+        <div class="grow"><label>Marque</label><input type="text" id="marque" placeholder="ex. Zara"></div>
+        <div class="grow"><label>Taille</label><input type="text" id="taille" placeholder="ex. M, 38"></div>
+        <div class="grow"><label>Prix (€)</label><input type="text" id="prix" placeholder="ex. 15"></div>
+      </div>
+      <div class="row">
+        <div class="grow"><label>Mesures</label><input type="text" id="mesures" placeholder="ex. poitrine 50 cm, longueur 62 cm"></div>
+        <div class="grow"><label>État</label><input type="text" id="etat" list="etatList" placeholder="ex. très bon état"><datalist id="etatList"><option value="neuf avec étiquette"><option value="neuf sans étiquette"><option value="très bon état"><option value="bon état"><option value="satisfaisant"></datalist></div>
+      </div>
+      <label style="color:var(--ink)"><input type="checkbox" id="texteVisible"> Le vêtement porte du texte ou un logo lisible <span class="muted">(la photo portée sera prise sans miroir, pour ne pas l'inverser)</span></label>
+      <p class="muted">Le mood des photos se choisit à l'étape « Style des photos ».</p>
       <div class="row" style="margin-top:14px"><button class="btn" id="createBtn">Créer la fiche</button><span class="muted" id="createMsg"></span></div>
     </section>
 
@@ -107,7 +133,6 @@
         <h3 id="titre"></h3>
         <p class="desc" id="desc"></p>
         <p class="muted">Mood : <span id="mood"></span></p>
-        <div id="questions" class="card hidden"></div>
         <div class="row">
           <button class="btn ghost" id="copyTitle">Copier le titre</button>
           <button class="btn ghost" id="copyDesc">Copier la description</button>
@@ -115,8 +140,10 @@
           <span class="muted">Cette description te convient ?</span>
           <span id="descRating"></span>
         </div>
-        <label>Feedback ou réponse aux questions</label>
-        <textarea id="feedbackText" placeholder="Ex. : c'est de la viscose, taille M, achetée chez Zara"></textarea>
+        <label>Feedback sur le texte</label>
+        <textarea id="feedbackText" placeholder="Ex. : c'est de la viscose, ton plus sobre, mentionne la coupe"></textarea>
+        <label>Description du vêtement pour les images <span class="muted">(anglais, envoyée au générateur d'images ; modifiable)</span></label>
+        <textarea id="garmentEnText" class="garment-en"></textarea>
         <div class="row" style="margin-top:8px"><button class="btn ghost" id="refineBtn">Mettre à jour le texte</button>
           <button class="btn" id="styleBtn">Choisir le style des photos →</button></div>
       </div>
@@ -124,15 +151,43 @@
       <div id="styleBlock" class="hidden" style="margin-top:18px;border-top:1px solid var(--line);padding-top:14px">
         <h2>2. Style des photos</h2>
         <div id="warnings" class="warn"></div>
-        <p class="muted">Références d'ambiance choisies (décochées = retirées) :</p>
-        <div class="thumbs" id="refs"></div>
+        <p class="muted">Mood de la fiche (un clic filtre la grille, un second clic retire le filtre) :</p>
+        <div class="chips" id="moodChips"></div>
         <div class="row">
-          <div class="grow"><label>Mood</label><input type="text" id="moodEdit"></div>
+          <label class="muted" style="margin:0"><input type="checkbox" id="allTypes"> Tous les types</label>
+          <span class="muted grow" id="gridCount"></span>
+          <span class="muted" id="selCount"></span>
         </div>
-        <p class="muted" id="mannequinNote"></p>
+        <p class="muted" style="margin:6px 0 0"><b style="color:var(--accent)">Vision</b> : image envoyée au générateur (2 max). <b style="color:var(--warn)">Texte</b> : seule sa description est envoyée (3 max).</p>
+        <div class="grid-inspi" id="styleGrid"></div>
         <div class="row" style="margin-top:10px">
-          <button class="btn ghost" id="rerollBtn">Retirer au sort</button>
-          <button class="btn" id="validateBtn">Valider et générer les 4 photos (≈ 0,35 $)</button>
+          <label style="margin:0">Ajouter une inspiration à la bibliothèque et à cette fiche</label>
+          <input type="file" id="ficheUpFiles" accept="image/*" multiple style="width:auto">
+          <button class="btn ghost" id="ficheUpBtn">Envoyer</button><span class="muted" id="ficheUpMsg"></span>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn ghost" id="rerollBtn">Revenir à la proposition</button>
+          <button class="btn" id="reviewBtn">Relire ce que l'IA va voir →</button>
+        </div>
+
+        <div id="reviewPanel" class="review hidden">
+          <h2>3. Ce que l'IA va voir</h2>
+          <label>Description du vêtement (anglais)</label>
+          <textarea id="garmentEn" class="garment-en"></textarea>
+          <label>Mannequin (plan porté, décrit en texte)</label>
+          <textarea id="mannequinDesc"></textarea>
+          <label>Inspirations envoyées en image (vision)</label>
+          <div class="thumbs" id="reviewVision"></div>
+          <label>Inspirations envoyées en texte</label>
+          <ol id="reviewTexte"></ol>
+          <div class="row">
+            <div class="grow"><label>Mood</label><select id="moodSelect"></select></div>
+            <div class="grow"><label style="color:var(--ink)"><input type="checkbox" id="photoSansMiroir"> Photo portée : sans miroir (texte/logo lisible)</label></div>
+          </div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn" id="validateBtn">Générer les 3 photos</button>
+            <span class="muted">~0,25 $ pour 3 photos</span>
+          </div>
         </div>
       </div>
     </section>
@@ -234,7 +289,14 @@
 <script>
 "use strict";
 const DEFAULT_BASE = "https://178-105-102-54.sslip.io/webhook/vfn";
-const PLAN_LABELS = { porte_miroir: "Porté — selfie miroir", a_plat: "À plat", cintre: "Sur cintre", detail: "Détail" };
+const PLAN_LABELS = { porte_miroir: "Porté", cintre: "Sur cintre", detail: "Détail" };
+// Étalonnage appliqué côté front aux images générées (affichage et téléchargement). À régler à l'œil.
+const GRADE = {
+  saturate: 0.82, sepia: 0.10, contrast: 0.97, brightness: 1.02,  // filtres CSS, appliqués dans cet ordre
+  grainAlpha: 0.06, grainDots: 60000,                              // grain : opacité et nombre de points (1 px)
+  jpegQuality: 0.92
+};
+const MAX_VISION = 2, MAX_TEXTE = 3;
 const STATUS_LABELS = {
   texte_en_cours: "Rédaction du texte…", texte_pret: "Texte prêt", selection_en_cours: "Choix du style…",
   en_attente_validation: "En attente de validation", generation_en_cours: "Génération des photos…",
@@ -287,8 +349,57 @@ function pumpImages() {
   }
 }
 function imageUrl(id) {
-  if (!imgCache.has(id)) imgCache.set(id, new Promise((resolve, reject) => { imgQueue.push({ id, resolve, reject }); pumpImages(); }));
+  if (!imgCache.has(id)) {
+    const p = new Promise((resolve, reject) => { imgQueue.push({ id, resolve, reject }); pumpImages(); });
+    p.catch(() => imgCache.delete(id));  // un échec (ex. photo pas encore indexée) pourra être retenté
+    imgCache.set(id, p);
+  }
   return imgCache.get(id);
+}
+
+// ---------- étalonnage des images générées ----------
+function loadImage(src) {
+  return new Promise((resolve, reject) => { const i = new Image(); i.onload = () => resolve(i); i.onerror = () => reject(new Error("image illisible")); i.src = src; });
+}
+const clamp255 = v => v < 0 ? 0 : v > 255 ? 255 : v;
+// Repli pixel par pixel (mêmes formules que les filtres CSS) si le canvas ne gère pas ctx.filter (anciens Safari).
+function gradePixels(ctx, w, hgt) {
+  const d = ctx.getImageData(0, 0, w, hgt), px = d.data;
+  const s = GRADE.saturate, a = 1 - GRADE.sepia, c = GRADE.contrast, b = GRADE.brightness;
+  const S = [0.213 + 0.787 * s, 0.715 - 0.715 * s, 0.072 - 0.072 * s, 0.213 - 0.213 * s, 0.715 + 0.285 * s, 0.072 - 0.072 * s, 0.213 - 0.213 * s, 0.715 - 0.715 * s, 0.072 + 0.928 * s];
+  const P = [0.393 + 0.607 * a, 0.769 - 0.769 * a, 0.189 - 0.189 * a, 0.349 - 0.349 * a, 0.686 + 0.314 * a, 0.168 - 0.168 * a, 0.272 - 0.272 * a, 0.534 - 0.534 * a, 0.131 + 0.869 * a];
+  const mul = (M, r, g, bl) => [clamp255(M[0] * r + M[1] * g + M[2] * bl), clamp255(M[3] * r + M[4] * g + M[5] * bl), clamp255(M[6] * r + M[7] * g + M[8] * bl)];
+  for (let i = 0; i < px.length; i += 4) {
+    let [r, g, bl] = mul(S, px[i], px[i + 1], px[i + 2]);
+    [r, g, bl] = mul(P, r, g, bl);
+    r = clamp255((r * c + 127.5 * (1 - c)) * b); g = clamp255((g * c + 127.5 * (1 - c)) * b); bl = clamp255((bl * c + 127.5 * (1 - c)) * b);
+    px[i] = r; px[i + 1] = g; px[i + 2] = bl;
+  }
+  ctx.putImageData(d, 0, 0);
+}
+function gradedDataUrl(img) {
+  const c = document.createElement("canvas");
+  c.width = img.naturalWidth; c.height = img.naturalHeight;
+  const ctx = c.getContext("2d");
+  const canFilter = typeof ctx.filter === "string";
+  if (canFilter) ctx.filter = "saturate(" + GRADE.saturate + ") sepia(" + GRADE.sepia + ") contrast(" + GRADE.contrast + ") brightness(" + GRADE.brightness + ")";
+  ctx.drawImage(img, 0, 0);
+  if (canFilter) ctx.filter = "none"; else gradePixels(ctx, c.width, c.height);
+  ctx.globalAlpha = GRADE.grainAlpha;
+  for (let i = 0; i < GRADE.grainDots; i++) {
+    ctx.fillStyle = Math.random() > 0.5 ? "#fff" : "#000";
+    ctx.fillRect(Math.random() * c.width, Math.random() * c.height, 1, 1);
+  }
+  return c.toDataURL("image/jpeg", GRADE.jpegQuality);
+}
+const gradedCache = new Map();
+function gradedUrl(id) {
+  if (!gradedCache.has(id)) {
+    const p = imageUrl(id).then(loadImage).then(gradedDataUrl);
+    p.catch(() => gradedCache.delete(id));
+    gradedCache.set(id, p);
+  }
+  return gradedCache.get(id);
 }
 const io = new IntersectionObserver(entries => {
   for (const en of entries) if (en.isIntersecting) {
@@ -302,8 +413,26 @@ function lazyImg(id, cls) { const i = h("img", { class: cls || "", alt: "" }); i
 let CONFIG = null;
 let job = null;            // dernier état connu de la fiche courante
 let pollTimer = null;
-const selectedMoods = new Set();
-let dropRefs = new Set();
+const inputPhotos = new Map();   // job_id → URL locale de la 1re photo d'entrée (fiches créées dans cette session)
+// Brouillon de l'étape style / relecture, propre à une fiche : jamais écrasé par les rafraîchissements.
+let draft = null;
+function draftFor(j) {
+  if (!draft || draft.jobId !== j.job_id) draft = { jobId: j.job_id, initSel: false, sel: { vision: [], texte: [] }, mood: "", moodFilter: "", allTypes: false,
+    garment: null, garmentDirty: false, mannequin: null, sansMiroir: null, reviewOpen: false };
+  const d = draft;
+  if (!d.garmentDirty && j.garment_en != null) d.garment = j.garment_en;
+  if (j.statut === "en_attente_validation" && !d.initSel) {
+    d.initSel = true;
+    d.sel.vision = (j.decor_refs || []).map(r => r.file_id).slice(0, MAX_VISION);
+    d.sel.texte = (j.inspi_texte || []).map(r => r.file_id).filter(id => !d.sel.vision.includes(id)).slice(0, MAX_TEXTE);
+    d.mood = moodIds().includes(j.mood) ? j.mood : "";
+    d.moodFilter = d.mood;
+    d.mannequin = j.mannequin_desc || "";
+    d.sansMiroir = !!j.texte_visible;
+  }
+  return d;
+}
+const moodIds = () => (CONFIG ? CONFIG.moods.map(m => m.id) : []);
 
 function fillSelect(sel, values, withAll) {
   sel.innerHTML = "";
@@ -319,16 +448,11 @@ async function loadConfig() {
   fillSelect($("#genre"), CONFIG.genres); fillSelect($("#upGenre"), CONFIG.genres);
   const allTypes = [...new Set(Object.values(CONFIG.types_par_genre).flat())].sort();
   $("#typeList").innerHTML = ""; for (const t of allTypes) $("#typeList").append(h("option", { value: t }));
-  if (!selectedMoods.size) CONFIG.moods.forEach(m => selectedMoods.add(m.id));
-  renderMoodChoice();
+  fillSelect($("#moodSelect"), CONFIG.moods.map(m => ({ value: m.id, label: m.id.replaceAll("_", " ") })), "— choisir un mood —");
 }
 
 function moodChip(m, on, onClick) {
   return h("span", { class: "chip" + (on ? " on" : ""), title: m.definition, onclick: onClick }, m.id.replaceAll("_", " "));
-}
-function renderMoodChoice() {
-  const box = $("#moodChoice"); box.innerHTML = "";
-  for (const m of CONFIG.moods) box.append(moodChip(m, selectedMoods.has(m.id), () => { selectedMoods.has(m.id) ? selectedMoods.delete(m.id) : selectedMoods.add(m.id); renderMoodChoice(); }));
 }
 
 // ---------- onglets ----------
@@ -383,36 +507,128 @@ function renderFiche() {
   const has = !!job;
   $("#jobCard").classList.toggle("hidden", !has);
   if (!has) return;
+  const d = draftFor(job);
   $("#jobTitle").textContent = "Fiche " + job.job_id;
   setStatus($("#jobStatus"), job.statut);
   $("#jobError").textContent = job.erreur || "";
   const textReady = !!job.titre;
   $("#textBlock").classList.toggle("hidden", !textReady);
   if (textReady) {
-    $("#titre").textContent = job.titre; $("#desc").textContent = job.description; $("#mood").textContent = job.mood;
-    const q = $("#questions"); q.classList.toggle("hidden", !job.questions.length);
-    q.innerHTML = ""; if (job.questions.length) q.append(h("strong", {}, "Questions du modèle"), h("ul", {}, job.questions.map(x => h("li", {}, x))));
+    $("#titre").textContent = job.titre; $("#desc").textContent = job.description; $("#mood").textContent = job.mood || "";
+    $("#mood").parentElement.classList.toggle("hidden", !job.mood);
     ratingWidget("description", "description", $("#descRating"));
     const busy = BUSY.includes(job.statut);
     for (const id of ["refineBtn", "styleBtn"]) $("#" + id).disabled = busy;
   }
-  const inStyle = ["en_attente_validation", "selection_en_cours"].includes(job.statut) || (job.decor_refs && job.decor_refs.length && ["en_attente_validation"].includes(job.statut));
-  $("#styleBlock").classList.toggle("hidden", job.statut !== "en_attente_validation");
-  if (job.statut === "en_attente_validation") {
+  syncGarment(d);
+  const inStyle = job.statut === "en_attente_validation";
+  $("#styleBlock").classList.toggle("hidden", !inStyle);
+  if (inStyle) {
     $("#warnings").textContent = (job.avertissements || []).join(" — ");
-    const box = $("#refs"); box.innerHTML = "";
-    if (!dropRefsFor || dropRefsFor !== job.job_id + ":" + (job.decor_refs || []).map(r => r.file_id).join(",")) { dropRefs = new Set(); dropRefsFor = job.job_id + ":" + (job.decor_refs || []).map(r => r.file_id).join(","); }
-    for (const r of job.decor_refs || []) {
-      const cb = h("input", { type: "checkbox" }); cb.checked = !dropRefs.has(r.file_id);
-      cb.addEventListener("change", () => cb.checked ? dropRefs.delete(r.file_id) : dropRefs.add(r.file_id));
-      box.append(h("label", { style: "margin:0;color:var(--ink)" }, lazyImg(r.file_id), h("div", { class: "muted" }, cb, " ", r.nom_fichier)));
-    }
-    if (!(job.decor_refs || []).length) box.append(h("span", { class: "muted" }, "Aucune référence : ambiance guidée par le mood seul."));
-    $("#moodEdit").value = job.mood || "";
-    $("#mannequinNote").textContent = job.mannequin_file_id ? "Mannequin maison associé au plan porté." : "";
+    if (!LIB && !libLoading) { libLoading = true; loadLibrary().finally(() => { libLoading = false; if (job && job.statut === "en_attente_validation") renderStyleGrid(); }); }
+    renderStyleGrid();
   }
 }
-let dropRefsFor = "";
+let libLoading = false;
+
+// garment_en : un seul brouillon, affiché dans deux textareas (texte et relecture)
+function syncGarment(d) {
+  for (const ta of document.querySelectorAll(".garment-en")) if (document.activeElement !== ta && ta.value !== (d.garment || "")) ta.value = d.garment || "";
+}
+for (const ta of document.querySelectorAll(".garment-en")) ta.addEventListener("input", () => {
+  if (!draft) return; draft.garment = ta.value; draft.garmentDirty = true;
+  for (const o of document.querySelectorAll(".garment-en")) if (o !== ta) o.value = ta.value;
+});
+
+// ----- grille des inspirations -----
+const libById = id => (LIB || []).find(i => i.drive_file_id === id);
+function inspiInfo(id) {
+  const it = libById(id); if (it) return it;
+  const r = [...(job.decor_refs || []), ...(job.inspi_texte || [])].find(x => x.file_id === id);
+  return r ? { drive_file_id: id, nom_fichier: r.nom_fichier, moods: r.moods || [], description_en: r.description_en || "", utilisations: 0, actif: true } : { drive_file_id: id, nom_fichier: id, moods: [], description_en: "", utilisations: 0, actif: true };
+}
+function toggleInspi(fileId, kind) {
+  const sel = draft.sel;
+  const other = kind === "vision" ? "texte" : "vision";
+  const max = kind === "vision" ? MAX_VISION : MAX_TEXTE;
+  if (sel[kind].includes(fileId)) sel[kind] = sel[kind].filter(id => id !== fileId);
+  else if (sel[kind].length < max) { sel[other] = sel[other].filter(id => id !== fileId); sel[kind].push(fileId); }
+  else toast("Maximum " + max + " en " + (kind === "vision" ? "vision" : "texte"));
+  renderStyleGrid();
+}
+function useAsInspi(fileId) {
+  const sel = draft.sel;
+  if (sel.vision.includes(fileId) || sel.texte.includes(fileId)) return;
+  if (sel.vision.length < MAX_VISION) sel.vision.push(fileId);
+  else if (sel.texte.length < MAX_TEXTE) sel.texte.push(fileId);
+  else return toast("Sélection pleine : 2 en vision et 3 en texte. Retire une inspiration d'abord.");
+  renderStyleGrid();
+}
+function renderStyleGrid() {
+  if (!job || !draft) return;
+  const d = draft, sel = d.sel;
+  // chips de mood : choix unique (mood de la fiche) et filtre de la grille
+  const chips = $("#moodChips"); chips.innerHTML = "";
+  for (const m of CONFIG.moods) chips.append(moodChip(m, d.mood === m.id, () => { d.mood = d.mood === m.id ? "" : m.id; d.moodFilter = d.mood; renderStyleGrid(); }));
+  $("#allTypes").checked = d.allTypes;
+  const box = $("#styleGrid"); box.innerHTML = "";
+  if (!LIB) { box.append(h("span", { class: "muted" }, "Chargement de la bibliothèque…")); $("#gridCount").textContent = ""; }
+  else {
+    const g = (job.genre || "").toLowerCase(), t = (job.type_vetement || "").toLowerCase();
+    const chosen = id => sel.vision.includes(id) || sel.texte.includes(id);
+    const list = LIB.filter(i => chosen(i.drive_file_id) || (i.actif && (i.genre || "").toLowerCase() === g
+      && (d.allTypes || (i.type_vetement || "").toLowerCase() === t) && (!d.moodFilter || (i.moods || []).includes(d.moodFilter))))
+      .sort((a, b) => (b.utilisations || 0) - (a.utilisations || 0));
+    $("#gridCount").textContent = list.length + " photo(s)" + (d.moodFilter ? " · mood " + d.moodFilter.replaceAll("_", " ") : " · tous moods") + (d.allTypes ? " · tous types" : " · type " + job.type_vetement);
+    if (!list.length) box.append(h("span", { class: "muted" }, "Aucune photo pour ce filtre : retire le mood ou coche « Tous les types »."));
+    for (const it of list) {
+      const id = it.drive_file_id, isV = sel.vision.includes(id), isT = sel.texte.includes(id);
+      const card = h("div", { class: "card item" + (isV ? " vision" : isT ? " texte" : "") });
+      const mchips = h("div", { class: "chips" }, (it.moods || []).map(m => h("span", { class: "chip static" + (m === d.mood ? " on" : "") }, m.replaceAll("_", " "))));
+      card.append(lazyImg(id), mchips,
+        h("div", { class: "muted", title: it.description_en || "" }, it.type_vetement + " · utilisée " + (it.utilisations || 0) + " fois"),
+        h("div", { class: "seg" },
+          h("button", { class: "v" + (isV ? " on" : ""), title: "Image envoyée au générateur (2 max)", onclick: () => toggleInspi(id, "vision") }, "Vision"),
+          h("button", { class: "t" + (isT ? " on" : ""), title: "Description envoyée en texte (3 max)", onclick: () => toggleInspi(id, "texte") }, "Texte")),
+        isV || isT ? h("button", { class: "linkbtn", onclick: () => { sel.vision = sel.vision.filter(x => x !== id); sel.texte = sel.texte.filter(x => x !== id); renderStyleGrid(); } }, "Retirer de la sélection")
+          : h("button", { class: "linkbtn", onclick: () => useAsInspi(id) }, "Utiliser comme inspi pour la génération"));
+      box.append(card);
+    }
+  }
+  $("#selCount").textContent = "Sélection : " + sel.vision.length + "/" + MAX_VISION + " vision · " + sel.texte.length + "/" + MAX_TEXTE + " texte";
+  renderReview();
+}
+$("#allTypes").addEventListener("change", () => { if (draft) { draft.allTypes = $("#allTypes").checked; renderStyleGrid(); } });
+
+// ----- écran « ce que l'IA va voir » -----
+function renderReview() {
+  const d = draft;
+  $("#reviewPanel").classList.toggle("hidden", !d.reviewOpen);
+  if (!d.reviewOpen) return;
+  syncGarment(d);
+  if (document.activeElement !== $("#mannequinDesc")) $("#mannequinDesc").value = d.mannequin || "";
+  $("#photoSansMiroir").checked = !!d.sansMiroir;
+  $("#moodSelect").value = d.mood || "";
+  const vis = $("#reviewVision"); vis.innerHTML = "";
+  for (const id of d.sel.vision) vis.append(h("figure", { style: "margin:0" }, lazyImg(id), h("figcaption", { class: "muted" }, inspiInfo(id).nom_fichier || "")));
+  if (!d.sel.vision.length) vis.append(h("span", { class: "muted" }, "Aucune inspiration en image : seules les photos du vêtement seront envoyées."));
+  const ol = $("#reviewTexte"); ol.innerHTML = "";
+  for (const id of d.sel.texte) {
+    const full = inspiInfo(id).description_en || "(description anglaise indisponible : photo en cours d'indexation ?)";
+    const short = full.length > 220 ? full.slice(0, 220) + "…" : full;
+    const p = h("span", {}, short);
+    const more = full.length > 220 ? h("button", { class: "linkbtn", style: "margin-left:6px", onclick: () => { const open = p.textContent === full; p.textContent = open ? short : full; more.textContent = open ? "voir tout" : "réduire"; } }, "voir tout") : null;
+    ol.append(h("li", {}, p, more));
+  }
+  if (!d.sel.texte.length) ol.append(h("li", { class: "muted" }, "Aucune inspiration en texte."));
+}
+$("#mannequinDesc").addEventListener("input", () => { if (draft) draft.mannequin = $("#mannequinDesc").value; });
+$("#photoSansMiroir").addEventListener("change", () => { if (draft) draft.sansMiroir = $("#photoSansMiroir").checked; });
+$("#moodSelect").addEventListener("change", () => { if (draft) { draft.mood = $("#moodSelect").value; draft.moodFilter = draft.mood; renderStyleGrid(); } });
+$("#reviewBtn").addEventListener("click", () => {
+  if (!draft) return; draft.reviewOpen = true; renderStyleGrid();
+  $("#reviewPanel").scrollIntoView({ behavior: "smooth", block: "start" });
+});
 
 // ----- page galerie -----
 function renderGallery() {
@@ -425,38 +641,53 @@ function renderGallery() {
   $("#gError").textContent = job.erreur || "";
   $("#gDesc").textContent = job.description || "";
   const box = $("#plans"); box.innerHTML = "";
+  const origUrl = inputPhotos.get(job.job_id);
   for (const p of job.plans) {
     const card = h("div", { class: "card plan" });
     card.append(h("h3", {}, PLAN_LABELS[p.plan] || p.plan));
+    let right;
     if (p.statut === "pret") {
-      const img = lazyImg(p.drive_file_id, "shot"); card.append(img);
-      const meta = h("div", { class: "bar" });
-      if (!p.fidelite_verifiee) meta.append(h("span", { class: "warn" }, "Fidélité non vérifiée"));
-      else if (p.fidelite_ok) meta.append(h("span", { class: "good" }, "✓ Fidèle au vêtement"));
-      else meta.append(h("span", { class: "warn" }, "⚠ Dérive possible"));
-      meta.append(h("span", { class: "muted" }, p.fournisseur + " · " + p.tentatives_total + " essai(s) · " + p.cout_plan.toFixed(2) + " $"));
-      card.append(meta);
-      if (p.problemes && p.problemes.length && !p.fidelite_ok) card.append(h("div", { class: "warn" }, p.problemes.join(" ; ")));
+      const img = h("img", { class: "shot", alt: "" });
+      let raw = false;
+      const show = () => (raw ? imageUrl(p.drive_file_id) : gradedUrl(p.drive_file_id)).then(u => { img.src = u; }).catch(() => { img.alt = "image indisponible"; });
+      show();
+      right = h("figure", {}, img, h("figcaption", {}, "Générée (étalonnée)"));
+      const rawBtn = h("button", { class: "btn ghost", onclick: () => { raw = !raw; rawBtn.textContent = raw ? "Voir étalonnée" : "Voir brut"; right.querySelector("figcaption").textContent = raw ? "Générée (brute)" : "Générée (étalonnée)"; show(); } }, "Voir brut");
       const keep = h("input", { type: "checkbox" }); keep.checked = p.garde;
       keep.addEventListener("change", async () => { try { await api("POST", "/job/garder", { job_id: job.job_id, plan: p.plan, garde: keep.checked }); } catch (e) { toast(e.message); keep.checked = !keep.checked; } });
-      const dl = h("a", { class: "muted", href: "#", download: p.plan + ".jpg" }, "Télécharger");
-      dl.addEventListener("click", async ev => { ev.preventDefault(); dl.href = await imageUrl(p.drive_file_id); dl.removeAttribute("onclick"); const a = h("a", { href: dl.href, download: (job.job_id + "_" + p.plan + ".jpg") }); document.body.append(a); a.click(); a.remove(); });
-      card.append(h("div", { class: "bar" }, h("label", { style: "margin:0;color:var(--ink)" }, keep, " Garder"), dl));
-    } else if (p.statut === "erreur") {
-      card.append(h("div", { class: "ph" }, "Échec : " + p.erreur));
+      const dl = h("a", { class: "muted", href: "#" }, "Télécharger");
+      dl.addEventListener("click", async ev => {
+        ev.preventDefault();
+        try {
+          const u = raw ? await imageUrl(p.drive_file_id) : await gradedUrl(p.drive_file_id);
+          const a = h("a", { href: u, download: job.job_id + "_" + p.plan + (raw ? "_brut" : "") + ".jpg" }); document.body.append(a); a.click(); a.remove();
+        } catch (e) { toast("Téléchargement impossible : " + e.message); }
+      });
+      card.append(h("div", { class: "pair" }, origFigure(origUrl), right));
+      card.append(h("div", { class: "bar" }, h("span", { class: "muted" }, p.fournisseur + " · " + (p.cout_plan || 0).toFixed(2) + " $")));
+      card.append(h("div", { class: "bar" }, h("label", { style: "margin:0;color:var(--ink)" }, keep, " Garder"), rawBtn, dl));
     } else {
-      card.append(h("div", { class: "ph" }, BUSY.includes(job.statut) ? "En cours…" : "En attente"));
+      right = h("div", { class: "ph" }, p.statut === "erreur" ? "Échec : " + p.erreur : BUSY.includes(job.statut) ? "En cours…" : "En attente");
+      card.append(h("div", { class: "pair" }, origFigure(origUrl), h("figure", {}, right)));
     }
     if (["galerie_prete", "budget_depasse", "termine"].includes(job.statut)) {
       const rate = h("div", { class: "bar" }); card.append(rate); ratingWidget("plan:" + p.plan, "plan", rate);
-      const fb = h("input", { type: "text", placeholder: "Consigne pour régénérer (facultatif)" });
+      const pastilles = new Set();
+      const pBox = h("div", { class: "chips" });
+      for (const ps of (CONFIG && CONFIG.pastilles) || []) {
+        const cb = h("input", { type: "checkbox" });
+        cb.addEventListener("change", () => cb.checked ? pastilles.add(ps.code) : pastilles.delete(ps.code));
+        pBox.append(h("label", { class: "chip", style: "margin:0;color:var(--ink)", title: ps.fragment }, cb, " " + ps.code.replaceAll("_", " ")));
+      }
+      const fb = h("input", { type: "text", placeholder: "Consigne libre pour régénérer (facultatif)" });
       const force = job.statut === "budget_depasse" ? h("input", { type: "checkbox" }) : null;
       const btn = h("button", { class: "btn ghost", onclick: async () => {
         btn.disabled = true;
-        try { await api("POST", "/job/plan", { job_id: job.job_id, plan: p.plan, feedback: fb.value, force: !!(force && force.checked) }); toast("Régénération lancée"); await refreshJob(job.job_id); }
+        try { await api("POST", "/job/plan", { job_id: job.job_id, plan: p.plan, feedback: fb.value, pastilles: [...pastilles], force: !!(force && force.checked) }); toast("Régénération lancée"); await refreshJob(job.job_id); }
         catch (e) { toast(e.message); btn.disabled = false; }
-      } }, "Régénérer");
-      card.append(fb, h("div", { class: "bar" }, btn, force ? h("label", { style: "margin:0;color:var(--ink)" }, force, " dépasser le plafond") : null));
+      } }, "Régénérer (~0,08 $)");
+      card.append(h("div", { class: "muted", style: "margin-top:6px" }, "Ajustements pour la régénération :"), pBox, fb,
+        h("div", { class: "bar" }, btn, force ? h("label", { style: "margin:0;color:var(--ink)" }, force, " dépasser le plafond") : null));
     }
     box.append(card);
   }
@@ -468,6 +699,10 @@ function renderGallery() {
   $("#globalRating").append(gUp, gDown);
   if (fb && !globalNote) { globalNote = fb.note === "👍" ? "up" : "down"; $("#globalComment").value = fb.commentaire || ""; globalReasons = new Set(fb.raisons || []); }
   renderGlobal();
+}
+// Photo d'origine : aucun endpoint ne sert les photos d'entrée d'une fiche ; on garde la 1re en mémoire à la création.
+function origFigure(url) {
+  return url ? h("figure", {}, h("img", { class: "orig", src: url, alt: "photo d'origine" }), h("figcaption", {}, "Photo d'origine")) : null;
 }
 let globalNote = null; let globalReasons = new Set();
 function renderGlobal() {
@@ -482,8 +717,6 @@ $("#photos").addEventListener("change", () => {
   const box = $("#photoPreview"); box.innerHTML = "";
   for (const f of $("#photos").files) box.append(h("img", { src: URL.createObjectURL(f) }));
 });
-$("#moodAll").addEventListener("click", () => { CONFIG.moods.forEach(m => selectedMoods.add(m.id)); renderMoodChoice(); });
-$("#moodNone").addEventListener("click", () => { selectedMoods.clear(); renderMoodChoice(); });
 $("#userSel").addEventListener("change", () => store.set("user", $("#userSel").value));
 
 $("#createBtn").addEventListener("click", async () => {
@@ -492,32 +725,70 @@ $("#createBtn").addEventListener("click", async () => {
   if (!$("#type").value.trim()) return toast("Indique le type de vêtement");
   const fd = new FormData();
   fd.append("user", $("#userSel").value); fd.append("genre", $("#genre").value); fd.append("type_vetement", $("#type").value.trim());
-  fd.append("moods_autorises", JSON.stringify([...selectedMoods]));
+  fd.append("moods_autorises", JSON.stringify(moodIds()));  // le mood se choisit à l'étape style
+  for (const k of ["marque", "taille", "mesures", "etat", "prix"]) fd.append(k, $("#" + k).value.trim());
+  fd.append("texte_visible", $("#texteVisible").checked ? "true" : "false");
   files.forEach((f, i) => fd.append("photo" + i, f, f.name));
   $("#createBtn").disabled = true; $("#createMsg").textContent = "Envoi des photos…";
   try {
     const r = await api("POST", "/job", fd);
-    dropRefsFor = ""; globalNote = null; globalReasons = new Set(); $("#globalComment").value = "";
+    inputPhotos.set(r.job_id, URL.createObjectURL(files[0]));
+    draft = null; globalNote = null; globalReasons = new Set(); $("#globalComment").value = "";
     $("#createMsg").textContent = "";
     await refreshJob(r.job_id);
   } catch (e) { toast(e.message); $("#createMsg").textContent = e.message; }
   $("#createBtn").disabled = false;
 });
 $("#refineBtn").addEventListener("click", async () => {
-  const msg = $("#feedbackText").value.trim(); if (!msg) return toast("Écris un feedback ou une réponse");
+  const msg = $("#feedbackText").value.trim(); if (!msg) return toast("Écris un feedback sur le texte");
   try { await api("POST", "/job/texte", { job_id: job.job_id, message: msg }); $("#feedbackText").value = ""; await refreshJob(job.job_id); } catch (e) { toast(e.message); }
 });
 async function startStyle() {
-  try { await api("POST", "/job/style", { job_id: job.job_id, moods_autorises: [...selectedMoods] }); dropRefsFor = ""; await refreshJob(job.job_id); } catch (e) { toast(e.message); }
+  try {
+    await api("POST", "/job/style", { job_id: job.job_id, moods_autorises: moodIds() });
+    if (draft && draft.jobId === job.job_id) { draft.initSel = false; draft.reviewOpen = false; }  // repartir de la proposition
+    await refreshJob(job.job_id);
+    if (job.statut === "en_attente_validation") $("#styleBlock").scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (e) { toast(e.message); }
 }
 $("#styleBtn").addEventListener("click", startStyle);
 $("#rerollBtn").addEventListener("click", startStyle);
 $("#validateBtn").addEventListener("click", async () => {
-  const refs = (job.decor_refs || []).map(r => r.file_id).filter(id => !dropRefs.has(id));
+  const d = draft; if (!d) return;
+  const selectedMood = $("#moodSelect").value || d.mood;
+  if (!selectedMood) return toast("Choisis un mood");
+  if (!$("#garmentEn").value.trim()) return toast("La description du vêtement (anglais) est vide");
+  $("#validateBtn").disabled = true;
   try {
-    await api("POST", "/job/valider", { job_id: job.job_id, mood: $("#moodEdit").value, decor_refs: refs });
+    await api("POST", "/job/valider", {
+      job_id: job.job_id, mood: selectedMood,
+      decor_refs: d.sel.vision, inspi_texte: d.sel.texte,
+      garment_en: $("#garmentEn").value, mannequin_desc: $("#mannequinDesc").value,
+      texte_visible: $("#photoSansMiroir").checked
+    });
     await refreshJob(job.job_id); showTab("galerie");
-  } catch (e) { toast(e.message); }
+  } catch (e) { toast(e.message, 6000); }
+  $("#validateBtn").disabled = false;
+});
+// Nouvelle inspiration déposée pendant la fiche : ajoutée à la bibliothèque puis à la sélection.
+$("#ficheUpBtn").addEventListener("click", async () => {
+  const files = [...$("#ficheUpFiles").files]; if (!files.length || !job) return toast("Choisis au moins une photo");
+  const fd = new FormData(); fd.append("genre", job.genre); fd.append("type_vetement", job.type_vetement);
+  files.forEach((f, i) => fd.append("photo" + i, f, f.name));
+  $("#ficheUpBtn").disabled = true; $("#ficheUpMsg").textContent = "Envoi…";
+  try {
+    const r = await api("POST", "/library/upload", fd);
+    const ids = r.drive_file_ids || [];
+    for (const id of ids) {
+      if (draft.sel.vision.includes(id) || draft.sel.texte.includes(id)) continue;
+      if (draft.sel.vision.length < MAX_VISION) draft.sel.vision.push(id);
+      else if (draft.sel.texte.length < MAX_TEXTE) draft.sel.texte.push(id);
+    }
+    $("#ficheUpMsg").textContent = ids.length + " photo(s) ajoutée(s) à la sélection ; indexation en cours (~5 s par photo), la grille se recharge dans 20 s.";
+    $("#ficheUpFiles").value = ""; renderStyleGrid();
+    setTimeout(async () => { await loadLibrary(); if (job && job.statut === "en_attente_validation") renderStyleGrid(); }, 20000);
+  } catch (e) { $("#ficheUpMsg").textContent = e.message; toast(e.message); }
+  $("#ficheUpBtn").disabled = false;
 });
 const copy = async (text, what) => { try { await navigator.clipboard.writeText(text); toast(what + " copié"); } catch (e) { toast("Copie impossible"); } };
 $("#copyTitle").addEventListener("click", () => copy(job.titre, "Titre"));
