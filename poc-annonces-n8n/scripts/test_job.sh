@@ -1,8 +1,17 @@
 #!/usr/bin/env bash
 # Test de bout en bout de l'étape 2 : crée une fiche depuis des photos, puis interroge son statut.
-# Usage : VFN_SECRET=<secret> ./scripts/test_job.sh <genre> <type> photo1.jpg [photo2.jpg ...]
-# Exemple : VFN_SECRET=... ./scripts/test_job.sh femme jupe ~/Desktop/jupe1.jpg ~/Desktop/jupe2.jpg
+# Usage : ./scripts/test_job.sh <genre> <type> photo1.jpg [photo2.jpg ...]
+# Exemple : ./scripts/test_job.sh femme jupe ~/Desktop/jupe1.jpg ~/Desktop/jupe2.jpg
+# Lit VFN_SECRET et VFN_BASE depuis .env ou l'environnement
 set -euo pipefail
+
+# Auto-load .env from poc-annonces-n8n directory
+ENV_FILE="$(cd "$(dirname "$0")/.." && pwd)/.env"
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  . "$ENV_FILE"
+  set +a
+fi
 
 BASE="${VFN_BASE:-https://178-105-102-54.sslip.io/webhook/vfn}"
 : "${VFN_SECRET:?Définis VFN_SECRET (valeur du credential Header Auth)}"

@@ -181,3 +181,9 @@ Limites : les exemples ne sont pas filtrés par utilisateur (toutes les annonces
 - **Tout est dans le dossier partagé `Modèles photos`** (id `1yvC8E9EZw3dux01jhvjZMIa_tjEfl8n-`, propriétaire : le compte Google connecté à n8n) : `VFN Fiches/` (un dossier par fiche : `input/`, `output/`, `log.json`) et `VFN Sauvegardes/` (un dossier daté par sauvegarde) sont déplacés à côté de `Femme/`, `Homme/`, `Mannequin/`. Les identifiants de dossier n'ont pas changé, donc aucun workflow de fiche n'a été modifié. L'indexation de la bibliothèque **ignore** les dossiers dont le nom contient `VFN` (sinon elle aurait pris les images générées pour des inspirations).
 - **`VFN — Sauvegarde (manuelle)`** (`DD9ug6YEISQkIYgP`) : bouton *Execute workflow* dans n8n. Il lit les workflows `VFN…` publiés avec le credential `n8n API` (URL de base `https://178-105-102-54.sslip.io/api/v1`) et les 6 Data Tables, puis écrit dans `VFN Sauvegardes/AAAA-MM-JJ_HHMM/` : `manifest.json`, `data_tables.json` (toutes les lignes), `data_tables_schema.json` (colonnes et types) et un `workflow__<nom>__<id>.json` par workflow (26 workflows, 29 fichiers au total). Les credentials ne sont jamais dans les exports : à recréer si on restaure sur un autre n8n. Pour restaurer : *Import from file* dans n8n pour chaque workflow, recréer les Data Tables d'après le schéma et réinjecter les lignes.
 - Les exports JSON ne sont pas synchronisés automatiquement : ils sont à jour au moment où la sauvegarde est lancée. Pour les versionner dans git, télécharger le dossier daté dans `poc-annonces-n8n/workflows/`.
+
+## Étape 9 — refonte coût / mood / texte (2026-09-25)
+
+Référence avant : job `mufe74xl35gs`, 0,56 $ (étape 4) ; jeu de test : `Test_humain/Gemini/Input` (t-shirt Peggy Sue's, texte visible).
+
+Script de mesure de coût : `scripts/measure_cost.sh <job_id>` (lit VFN_SECRET depuis `.env` ou l'environnement).
