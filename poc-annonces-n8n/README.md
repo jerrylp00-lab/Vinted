@@ -143,8 +143,35 @@ Fonctionnement de la proposition : le workflow lit les retours de la période (3
 
 Front : nouvel onglet **Prompts** (choix du prompt, « Proposer un ajustement », liste des versions avec notes, texte, différences avec la version active, « Activer cette version »).
 
-Telegram : le nœud est câblé et n'envoie que si `chat_id` est renseigné dans la ligne `config_ajustement` de `prompts` (vide pour l'instant). Pour l'obtenir : écrire au bot puis demander son identifiant à @get_id_bot, et le coller dans le JSON de cette ligne.
+Pas de notification Telegram (abandonnée) : on consulte les propositions dans l'onglet Prompts. Le champ `chat_id` de `config_ajustement` est un reste inutilisé.
 
 Test réel : sur `brief_plan_porte_miroir`, 3 signaux (1 👎 avec le commentaire « le texte du t-shirt est faux », 2 dérives de fidélité) → proposition v2, confiance **faible** (à raison : très peu de données), pour 0,010 $ : une seule phrase ajoutée au brief (« reproduire exactement le texte, logo ou illustration imprimés, avec le bon sens de lecture »). Liste, refus (`config_image` → 400), activation de la v2, retour arrière sur la v1 et version inconnue (404) testés. **La v2 est laissée inactive** ; la v1 est bien la version active.
 
 Limites : la version d'un prompt d'image utilisée par une fiche n'est pas stockée dans le job (seul le brief exact l'est dans `shots.brief`) : le dossier de preuves ne filtre donc pas par version, et après une activation il faut laisser passer quelques fiches avant de re-proposer. Le workflow n'évalue pas si une version activée a réellement amélioré les résultats : c'est à toi de comparer les retours avant/après.
+
+## Ménage n8n (2026-09-24)
+
+Archivés dans n8n (restaurables depuis l'interface) : `Test Drive — bibliothèque`, `Test Fal — image` et `VFN — Ping (étape 0)` (les webhooks de ping et de test ne servent plus, le front vérifie le secret en appelant `/config`). Le nœud Telegram du workflow d'ajustement a été retiré.
+
+## Étape 8 — Profil user et exemples (2026-09-24)
+
+Deux apports à la rédaction du texte, avec un coût de tokens borné et **uniquement à l'étape texte** (jamais dans les prompts image) :
+
+- **Profil de préférences** par utilisateur (`users.preferences_md`), plafonné à 1500 caractères (≈ 300 tokens, `config_profil.max_chars`), injecté à la place du jeton `{profil}` du prompt `texte_fiche`.
+- **Exemples** (few-shot en texte seul) : jusqu'à 2 annonces que tu as déjà notées 👍 sur la description (même genre et type en priorité, à défaut même genre ; les plus récentes ; 1200 caractères chacune), injectées à la place du jeton `{exemples}`. Aucun exemple = section omise. Les identifiants des exemples utilisés sont conservés dans `jobs.prompt_versions.exemples` (donc dans `log.json`).
+
+Le prompt `texte_fiche` est passé en **v2** (ajout du jeton `{exemples}`) et activée ; la v1 reste disponible dans l'onglet Prompts pour revenir en arrière (sans jeton, les exemples sont alors simplement ignorés).
+
+| Workflow | ID | Endpoint |
+|---|---|---|
+| `VFN — Lire le profil user` | `CgSPgAdmyCA356HI` | `GET /users/profil?user=` → `{user, preferences_md, max_chars}` |
+| `VFN — Enregistrer le profil user` | `AT3l77KOj11xSIuV` | `POST /users/profil` `{user, preferences_md}` (400 au-delà de la limite) |
+| `VFN — Proposer une mise à jour du profil user` | `PHlT76TnZbViAFlw` | `POST /users/profil/propose` `{user, jours?}` : dossier de preuves (corrections de texte demandées, avis sur les descriptions, notes finales des 60 derniers jours) → proposition de profil, **jamais appliquée** ; prompt `meta_profil`, modèle de `config_ajustement` |
+
+Front : nouvel onglet **Profil** (édition avec compteur, « Proposer une mise à jour depuis mes retours », « Utiliser cette proposition » puis « Enregistrer »).
+
+Corrigé au passage : le modèle de texte renvoie parfois un JSON avec un saut de ligne brut dans une chaîne (fiche en erreur « Unterminated string ») ; le parsing tente maintenant une réparation avant d'échouer.
+
+Tests réels : profil de test enregistré (« éviter les superlatifs », « terminer par une phrase sur l'état général ») + 👍 sur la description d'une fiche femme/haut → nouvelle fiche femme/haut : le prompt envoyé contenait bien le profil et l'exemple (un seul approuvé pour l'instant), la description a respecté le profil (aucun superlatif, phrase finale sur l'état) ; +0,0002 $ de tokens par fiche. La proposition de profil sur les données de test a été prudente (confiance faible, peu de retours répétés) ; profil de test remis à vide, rien n'est appliqué tant que tu ne l'enregistres pas.
+
+Limites : les exemples ne sont pas filtrés par utilisateur (toutes les annonces 👍 du même genre/type servent, y compris celles de l'associé) ; la sélection des exemples lit toute la table `jobs` et `feedback`, ce qui restera rapide pour quelques centaines de fiches.

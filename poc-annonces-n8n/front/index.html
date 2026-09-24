@@ -72,6 +72,7 @@
     <button data-tab="fiche" class="on">Nouvelle fiche</button>
     <button data-tab="galerie">Galerie</button>
     <button data-tab="biblio">Bibliothèque</button>
+    <button data-tab="profil">Profil</button>
     <button data-tab="prompts">Prompts</button>
   </nav>
   <span class="grow"></span>
@@ -187,6 +188,20 @@
       <p class="muted" id="libCount"></p>
     </section>
     <div class="lib" id="lib"></div>
+  </div>
+
+  <!-- ========== PROFIL ========== -->
+  <div id="tab-profil" class="hidden">
+    <section class="card">
+      <h2>Profil de rédaction de <span id="profUser"></span></h2>
+      <p class="muted">Ces préférences sont ajoutées au prompt qui rédige tes descriptions (courtes puces, environ 300 tokens maximum). Les descriptions que tu notes 👍 servent en plus d'exemples de style (2 au plus, du même genre et type) pour les prochaines fiches.</p>
+      <textarea id="profText" style="min-height:150px" placeholder="- Toujours mentionner la matière et la taille&#10;- Ton sobre, pas de superlatifs"></textarea>
+      <div class="row"><span class="muted" id="profCount"></span><span class="grow"></span>
+        <button class="btn ghost" id="profPropose">Proposer une mise à jour depuis mes retours</button>
+        <button class="btn" id="profSave">Enregistrer</button></div>
+      <p class="muted" id="profMsg"></p>
+    </section>
+    <div id="profProposal" class="card hidden"></div>
   </div>
 
   <!-- ========== PROMPTS ========== -->
@@ -318,7 +333,8 @@ function renderMoodChoice() {
 
 // ---------- onglets ----------
 function showTab(name) {
-  for (const t of ["fiche", "galerie", "biblio", "prompts"]) $("#tab-" + t).classList.toggle("hidden", t !== name);
+  for (const t of ["fiche", "galerie", "biblio", "profil", "prompts"]) $("#tab-" + t).classList.toggle("hidden", t !== name);
+  if (name === "profil") loadProfile();
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
   store.set("tab", name);
   if (name === "biblio" && !LIB) loadLibrary();
@@ -569,6 +585,38 @@ $("#upBtn").addEventListener("click", async () => {
     $("#upFiles").value = ""; setTimeout(() => loadLibrary(), 20000);
   } catch (e) { $("#upMsg").textContent = e.message; toast(e.message); }
   $("#upBtn").disabled = false;
+});
+
+// ---------- profil ----------
+let profMax = 1500;
+function profCount() { $("#profCount").textContent = $("#profText").value.length + " / " + profMax + " caractères"; }
+async function loadProfile() {
+  const user = $("#userSel").value; $("#profUser").textContent = user; $("#profProposal").classList.add("hidden"); $("#profMsg").textContent = "";
+  try { const r = await api("GET", "/users/profil?user=" + encodeURIComponent(user)); profMax = r.max_chars; $("#profText").value = r.preferences_md; profCount(); }
+  catch (e) { toast(e.message); }
+}
+$("#profText").addEventListener("input", profCount);
+$("#userSel").addEventListener("change", () => { if (!$("#tab-profil").classList.contains("hidden")) loadProfile(); });
+$("#profSave").addEventListener("click", async () => {
+  try { const r = await api("POST", "/users/profil", { user: $("#userSel").value, preferences_md: $("#profText").value }); $("#profMsg").textContent = "Profil enregistré (" + r.caracteres + " caractères)."; }
+  catch (e) { toast(e.message); }
+});
+$("#profPropose").addEventListener("click", async () => {
+  $("#profPropose").disabled = true; $("#profMsg").textContent = "Analyse de tes retours…";
+  try {
+    const r = await api("POST", "/users/profil/propose", { user: $("#userSel").value });
+    const box = $("#profProposal"); box.classList.remove("hidden"); box.innerHTML = "";
+    if (r.ok === false) box.append(h("p", {}, r.message || r.error));
+    else {
+      box.append(h("h3", {}, "Proposition — confiance " + r.confiance + (r.inchange ? " (profil inchangé)" : "")),
+        h("ul", {}, (r.resume_changements || []).map(x => h("li", {}, x))),
+        h("pre", { class: "desc", style: "font:inherit;margin:8px 0" }, r.proposition || "(profil vide)"),
+        h("div", { class: "row" }, h("button", { class: "btn ghost", onclick: () => { $("#profText").value = r.proposition; profCount(); toast("Proposition placée dans le champ : relis-la puis Enregistre"); } }, "Utiliser cette proposition"),
+          h("span", { class: "muted" }, JSON.stringify(r.statistiques) + " · " + r.cout.toFixed(3) + " $")));
+    }
+    $("#profMsg").textContent = "";
+  } catch (e) { toast(e.message); $("#profMsg").textContent = e.message; }
+  $("#profPropose").disabled = false;
 });
 
 // ---------- prompts ----------
