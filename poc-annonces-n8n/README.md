@@ -128,3 +128,23 @@ L'indexation (`k7j9FcAjqQKLYCj1`) a un troisième déclencheur (appel depuis un 
 Testé : endpoints en `curl` ; front dans le navigateur intégré sur une fiche réelle (galerie avec les 4 images, états 👍/👎/garder relus depuis le serveur, bibliothèque de 23 photos avec chargement différé) ; création d'une nouvelle fiche par le formulaire puis choix du style. Non testés dans l'interface : la validation finale depuis le formulaire (~0,35 $), l'upload de nouvelles inspirations, le repli sur un secret erroné.
 
 Limite : le fichier `front/index.html` n'a pas de style final ; c'est le fond fonctionnel, à habiller dans la phase design.
+
+## Étape 7 — Ajustement des prompts (2026-09-24)
+
+Boucle voulue : **propose → tu lis le diff → tu actives ou pas → retour arrière possible**. Aucun prompt n'est jamais modifié automatiquement.
+
+| Workflow | ID | Endpoint |
+|---|---|---|
+| `VFN — Proposer un ajustement de prompt` | `5K6sfWDDQVc8NpI4` | `POST /prompts/propose` `{nom, jours?}` |
+| `VFN — Lister les prompts` | `nqG841Bhc9LJWE66` | `GET /prompts` (toutes les versions, actif, notes, texte, `ajustable`) |
+| `VFN — Activer une version de prompt` | `GBUtNGync3iN147g` | `POST /prompts/activer` `{nom, version}` (désactive les autres versions du même prompt ; sert aussi au retour arrière) |
+
+Fonctionnement de la proposition : le workflow lit les retours de la période (30 jours par défaut, `config_ajustement`) qui concernent le prompt choisi et construit un dossier de preuves : pouces et raisons, commentaires, régénérations (signal implicite), et selon le prompt les corrections du texte que l'utilisateur a demandées (`texte_fiche`) ou les dérives de fidélité détectées sur les tentatives (prompts d'image). Chaque `brief_plan_*` ne regarde que son plan ; `brief_commun` et `brief_ref_*` regardent les 4. Sans signal négatif suffisant (`min_signaux`), il répond « pas assez de signaux » sans appeler le LLM. Sinon `anthropic/claude-sonnet-5` (modifiable dans `config_ajustement`) reçoit le prompt actuel, le dossier et les consignes de `meta_ajustement`, et renvoie le nouveau texte complet, la liste des changements justifiés, ses hypothèses et un niveau de confiance. Garde-fou : la proposition est **rejetée** si un jeton `{...}` du prompt d'origine disparaît ou si un nouveau apparaît. Elle est enregistrée dans `prompts` avec `actif = false`, version suivante, et `notes` (date, nombre de signaux, confiance, résumé) ; la réponse contient le diff. Les prompts `config_*`, `moods_liste` et `meta_ajustement` ne sont pas ajustables automatiquement.
+
+Front : nouvel onglet **Prompts** (choix du prompt, « Proposer un ajustement », liste des versions avec notes, texte, différences avec la version active, « Activer cette version »).
+
+Telegram : le nœud est câblé et n'envoie que si `chat_id` est renseigné dans la ligne `config_ajustement` de `prompts` (vide pour l'instant). Pour l'obtenir : écrire au bot puis demander son identifiant à @get_id_bot, et le coller dans le JSON de cette ligne.
+
+Test réel : sur `brief_plan_porte_miroir`, 3 signaux (1 👎 avec le commentaire « le texte du t-shirt est faux », 2 dérives de fidélité) → proposition v2, confiance **faible** (à raison : très peu de données), pour 0,010 $ : une seule phrase ajoutée au brief (« reproduire exactement le texte, logo ou illustration imprimés, avec le bon sens de lecture »). Liste, refus (`config_image` → 400), activation de la v2, retour arrière sur la v1 et version inconnue (404) testés. **La v2 est laissée inactive** ; la v1 est bien la version active.
+
+Limites : la version d'un prompt d'image utilisée par une fiche n'est pas stockée dans le job (seul le brief exact l'est dans `shots.brief`) : le dossier de preuves ne filtre donc pas par version, et après une activation il faut laisser passer quelques fiches avant de re-proposer. Le workflow n'évalue pas si une version activée a réellement amélioré les résultats : c'est à toi de comparer les retours avant/après.

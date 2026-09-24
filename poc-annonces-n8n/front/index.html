@@ -72,6 +72,7 @@
     <button data-tab="fiche" class="on">Nouvelle fiche</button>
     <button data-tab="galerie">Galerie</button>
     <button data-tab="biblio">Bibliothèque</button>
+    <button data-tab="prompts">Prompts</button>
   </nav>
   <span class="grow"></span>
   <label style="margin:0" class="muted">Utilisateur
@@ -187,6 +188,22 @@
     </section>
     <div class="lib" id="lib"></div>
   </div>
+
+  <!-- ========== PROMPTS ========== -->
+  <div id="tab-prompts" class="hidden">
+    <section class="card">
+      <h2>Prompts et ajustements</h2>
+      <p class="muted">Les prompts sont lus à chaque génération : activer une version change immédiatement le comportement, et on peut toujours revenir en arrière. Une proposition d'ajustement est créée <b>inactive</b> : rien ne change tant que tu ne l'actives pas.</p>
+      <div class="row">
+        <div class="grow"><label style="margin:0">Prompt</label><select id="pName"></select></div>
+        <div><label style="margin:0">Période (jours)</label><input type="text" id="pDays" value="30" style="width:80px"></div>
+        <button class="btn" id="pPropose">Proposer un ajustement</button>
+      </div>
+      <p class="muted" id="pMsg"></p>
+    </section>
+    <div id="pProposal" class="card hidden"></div>
+    <div id="pVersions"></div>
+  </div>
 </main>
 
 <dialog id="settings">
@@ -301,10 +318,11 @@ function renderMoodChoice() {
 
 // ---------- onglets ----------
 function showTab(name) {
-  for (const t of ["fiche", "galerie", "biblio"]) $("#tab-" + t).classList.toggle("hidden", t !== name);
+  for (const t of ["fiche", "galerie", "biblio", "prompts"]) $("#tab-" + t).classList.toggle("hidden", t !== name);
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
   store.set("tab", name);
   if (name === "biblio" && !LIB) loadLibrary();
+  if (name === "prompts" && !PROMPTS) loadPrompts();
   if (name === "galerie" && job) renderGallery();
 }
 document.querySelectorAll("#tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
@@ -551,6 +569,60 @@ $("#upBtn").addEventListener("click", async () => {
     $("#upFiles").value = ""; setTimeout(() => loadLibrary(), 20000);
   } catch (e) { $("#upMsg").textContent = e.message; toast(e.message); }
   $("#upBtn").disabled = false;
+});
+
+// ---------- prompts ----------
+let PROMPTS = null;
+function lineDiff(oldText, newText) {
+  const o = oldText.split("\n"), n = newText.split("\n"), os = new Set(o), ns = new Set(n);
+  return [...o.filter(l => !ns.has(l)).map(l => "- " + l), ...n.filter(l => !os.has(l)).map(l => "+ " + l)].join("\n");
+}
+async function loadPrompts(keepName) {
+  try { PROMPTS = (await api("GET", "/prompts")).prompts; } catch (e) { return toast(e.message); }
+  const sel = $("#pName"); const cur = keepName || sel.value;
+  fillSelect(sel, PROMPTS.map(p => ({ value: p.nom, label: p.nom + (p.versions.length > 1 ? "  (" + p.versions.length + " versions)" : "") })));
+  if (cur && PROMPTS.some(p => p.nom === cur)) sel.value = cur;
+  renderPrompt();
+}
+function renderPrompt() {
+  const p = PROMPTS.find(x => x.nom === $("#pName").value); const box = $("#pVersions"); box.innerHTML = "";
+  if (!p) return;
+  $("#pPropose").disabled = !p.ajustable;
+  $("#pMsg").textContent = p.ajustable ? "" : "Ce prompt est une configuration : à modifier directement, pas d'ajustement automatique.";
+  const active = p.versions.find(v => v.actif);
+  for (const v of p.versions) {
+    const card = h("div", { class: "card" });
+    const text = h("pre", { class: "desc hidden", style: "font:inherit;margin:8px 0" }, v.texte);
+    const diff = h("pre", { class: "desc hidden", style: "font:12.5px ui-monospace,monospace;margin:8px 0" }, active && active !== v ? lineDiff(active.texte, v.texte) || "(identique)" : "");
+    const btnText = h("button", { class: "btn ghost", onclick: () => text.classList.toggle("hidden") }, "Voir le texte");
+    const btnDiff = active && active !== v ? h("button", { class: "btn ghost", onclick: () => diff.classList.toggle("hidden") }, "Différences avec la version active") : null;
+    const btnAct = v.actif ? null : h("button", { class: "btn", onclick: async () => {
+      if (!confirm("Activer la version " + v.version + " de " + p.nom + " ? Elle sera utilisée dès la prochaine génération.")) return;
+      try { await api("POST", "/prompts/activer", { nom: p.nom, version: v.version }); toast("Version " + v.version + " activée"); await loadPrompts(p.nom); } catch (e) { toast(e.message); }
+    } }, "Activer cette version");
+    card.append(h("div", { class: "row" }, h("strong", { class: "grow" }, "Version " + v.version), h("span", { class: "status" + (v.actif ? "" : "") }, v.actif ? "Active" : "Inactive")),
+      h("p", { class: "muted" }, v.notes || ""), h("div", { class: "row" }, btnText, btnDiff, btnAct), text, diff);
+    box.append(card);
+  }
+}
+$("#pName").addEventListener("change", () => { $("#pProposal").classList.add("hidden"); renderPrompt(); });
+$("#pPropose").addEventListener("click", async () => {
+  const nom = $("#pName").value; $("#pPropose").disabled = true; $("#pMsg").textContent = "Analyse des retours et rédaction de la proposition (30 s environ)…";
+  try {
+    const r = await api("POST", "/prompts/propose", { nom, jours: Number($("#pDays").value) || 30 });
+    const box = $("#pProposal"); box.classList.remove("hidden"); box.innerHTML = "";
+    if (r.ok === false) { box.append(h("p", {}, r.message || r.error)); $("#pMsg").textContent = ""; }
+    else {
+      box.append(h("h3", {}, "Proposition : " + r.nom + " v" + r.version_proposee + " (inactive) — confiance " + r.confiance),
+        h("ul", {}, r.resume_changements.map(x => h("li", {}, x))),
+        h("p", { class: "muted" }, "Hypothèses : " + r.hypotheses),
+        h("pre", { class: "desc", style: "font:12.5px ui-monospace,monospace" }, r.diff),
+        h("p", { class: "muted" }, "Signaux : " + JSON.stringify(r.statistiques) + " · coût " + r.cout.toFixed(3) + " $ · Active-la depuis la liste ci-dessous si elle te convient."));
+      $("#pMsg").textContent = "";
+    }
+    await loadPrompts(nom);
+  } catch (e) { toast(e.message); $("#pMsg").textContent = e.message; }
+  $("#pPropose").disabled = false;
 });
 
 // ---------- réglages & démarrage ----------
