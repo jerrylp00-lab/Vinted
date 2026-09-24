@@ -7,21 +7,19 @@ jamais le contenu du prompt.
 
 from __future__ import annotations
 
-import base64
-import io
 import json
-import os
 from dataclasses import dataclass, field
 
 from openai import OpenAI
-from PIL import Image
 
-OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
-
-DEFAULT_MODEL = "google/gemini-2.5-flash-lite"
-FALLBACK_MODELS = ["openai/gpt-4o-mini", "anthropic/claude-haiku-4.5"]
-
-MAX_IMAGE_SIDE = 1280
+from images import MAX_IMAGE_SIDE, resize_to_data_url
+from llm_client import (
+    DEFAULT_MODEL,
+    FALLBACK_MODELS,
+    OpenRouterKeyMissing,
+    build_openrouter_client,
+    resolve_model,
+)
 
 SYSTEM_PROMPT = """Tu es un vendeur Vinted expert, spécialisé dans la rédaction \
 de fiches produit efficaces et honnêtes.
@@ -83,35 +81,16 @@ class ListingDraft:
     description: str
     mood: str
     questions: list[str] = field(default_factory=list)
-
-
-def _resize_to_data_url(photo: bytes) -> str:
-    image = Image.open(io.BytesIO(photo))
-    image = image.convert("RGB")
-
-    width, height = image.size
-    longest_side = max(width, height)
-    if longest_side > MAX_IMAGE_SIDE:
-        scale = MAX_IMAGE_SIDE / longest_side
-        image = image.resize((round(width * scale), round(height * scale)))
-
-    buffer = io.BytesIO()
-    image.save(buffer, format="JPEG")
-    encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
-    return f"data:image/jpeg;base64,{encoded}"
+    decor_refs: list[bytes] = field(default_factory=list)
+    decor_ref_labels: list[str] = field(default_factory=list)
+    mannequin_ref: bytes | None = None
 
 
 def _build_client(client: OpenAI | None) -> OpenAI:
-    if client is not None:
-        return client
-
-    api_key = os.environ.get("OPENROUTER_API_KEY")
-    if not api_key:
-        raise ListingError(
-            "OPENROUTER_API_KEY manquante dans l'environnement. "
-            "Voir .env.example pour la configuration."
-        )
-    return OpenAI(base_url=OPENROUTER_BASE_URL, api_key=api_key)
+    try:
+        return build_openrouter_client(client)
+    except OpenRouterKeyMissing as exc:
+        raise ListingError(str(exc)) from exc
 
 
 def _parse_response(content: str) -> ListingDraft:
@@ -154,10 +133,10 @@ def generate_listing_draft(
         raise ValueError("Au moins une photo est requise.")
 
     resolved_client = _build_client(client)
-    resolved_model = model or os.environ.get("OPENROUTER_MODEL") or DEFAULT_MODEL
+    resolved_model = resolve_model(model)
 
     image_content = [
-        {"type": "image_url", "image_url": {"url": _resize_to_data_url(photo)}}
+        {"type": "image_url", "image_url": {"url": resize_to_data_url(photo)}}
         for photo in photos
     ]
 

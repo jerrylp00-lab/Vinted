@@ -29,6 +29,11 @@ Créer un fichier `.env` (jamais commité, voir `.gitignore` à la racine) avec 
 OPENROUTER_API_KEY=sk-or-...
 # optionnel, sinon google/gemini-2.5-flash-lite par défaut
 OPENROUTER_MODEL=google/gemini-2.5-flash-lite
+
+# PoC-2 uniquement
+GOOGLE_SERVICE_ACCOUNT_FILE=/chemin/vers/service-account.json
+GOOGLE_DRIVE_ROOT_FOLDER_ID=<id du dossier "Modèles photos">
+FAL_KEY=<clé api fal.ai>
 ```
 
 Lancer les tests (aucune clé API requise, tout est mocké) :
@@ -42,3 +47,15 @@ Lancer l'app :
 ```bash
 streamlit run app.py
 ```
+
+### PoC-2 : indexer la bibliothèque
+
+Le dossier Drive "Modèles photos" doit être partagé (rôle Lecteur) avec
+l'email du service account. Relancer à chaque ajout de nouvelles photos :
+
+```bash
+python index_library.py
+```
+
+Produit `decor_index.json` (non commité — spécifique à la bibliothèque de
+chaque vendeur), lu par `app.py` au démarrage.
