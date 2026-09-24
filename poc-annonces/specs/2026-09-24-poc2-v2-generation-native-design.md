@@ -15,7 +15,7 @@ Le test humain du 2026-09-24 (`Test_humain/`) a montré que le pipeline segmenta
 | Mannequin maison | Conservé, envoyé comme référence sur le plan « porté » uniquement. |
 | Plans | 4 fixes : porté (selfie miroir), à plat, cintre, détail. |
 | Appels | 4 appels séparés, un par plan (pleine résolution, régénération par plan). |
-| Modèle | Gemini image via OpenRouter (`OPENROUTER_API_KEY` existante). Repli : API Google directe si le spike échoue. |
+| Modèle | Nano Banana 2 (Gemini image) via Fal.ai, `fal-ai/nano-banana-2/edit`, 0,08 $/image en 1K, `FAL_KEY` (crédit déjà acheté). Spike OpenRouter aussi validé (`google/gemini-3.1-flash-image`, ~0,07 $), non retenu pour utiliser le crédit Fal. |
 | Entrées | Photos brutes de téléphone (pas de nettoyage de cadres). |
 | Relecture | Galerie : garder / rejeter / régénérer un plan avec consigne libre. |
 | Succès | Meilleur que l'app Gemini. Test d'acceptation manuel sur le t-shirt Peggy Sue's. Coût loggé et affiché, sans plafond. |
@@ -33,10 +33,10 @@ photos brutes ─► PoC-1 (texte, mood, decor_refs) ─► Validation du plan
 
 Modules :
 - `shots.py` — les 4 plans en données : brief, refs requises, cadrage, règles. C'est le harnais.
-- `image_gen.py` — appel OpenRouter, N images en entrée, 1 image en sortie, usage/coût remonté.
+- `image_gen.py` — appel Fal.ai, N images en entrée, 1 image en sortie, usage/coût remonté.
 - `fidelity.py` — check vision, verdict `{ok, problemes[]}`.
 - `photo_generation.py` — orchestration. Garde la frontière `generate_listing_photos(photos, draft)`.
-- Supprimés : `FalClient`, `_mask_from_alpha`, `_composite`, dépendance Fal.ai (`FAL_KEY`).
+- Supprimés : `FalClient`, `_mask_from_alpha`, `_composite` (Fal reste utilisé, mais via le modèle image natif).
 
 ## Harnais (brief)
 

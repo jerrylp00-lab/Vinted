@@ -9,7 +9,7 @@ Les specs de cette feature vivent dans `specs/`. Lire la spec concernée avant d
 ## Seams
 
 - `generate_listing_draft(photos) -> ListingDraft` — frontière du PoC-1 (appel OpenRouter vision+JSON). Mocker la réponse HTTP dans les tests, pas le prompt interne.
-- `generate_listing_photos(photos, draft) -> list[ShotResult]` — frontière du PoC-2 V2 (4 plans, modèle image natif via OpenRouter + check de fidélité). Injecter `image_generator` / `fidelity_checker` dans les tests, jamais la logique de `shots.py`.
+- `generate_listing_photos(photos, draft) -> list[ShotResult]` — frontière du PoC-2 V2 (4 plans, modèle image natif Nano Banana 2 via Fal.ai + check de fidélité). Injecter `image_generator` / `fidelity_checker` dans les tests, jamais la logique de `shots.py`.
 
 ## Contexte voisin
 
@@ -36,8 +36,9 @@ OPENROUTER_MODEL=google/gemini-2.5-flash-lite
 # Community Cloud — jamais les deux, GOOGLE_SERVICE_ACCOUNT_JSON prime)
 GOOGLE_SERVICE_ACCOUNT_FILE=/chemin/vers/service-account.json
 GOOGLE_DRIVE_ROOT_FOLDER_ID=<id du dossier "Modèles photos">
-# optionnel, sinon google/gemini-3.1-flash-image par défaut
-OPENROUTER_IMAGE_MODEL=google/gemini-3.1-flash-image
+FAL_KEY=<clé api fal.ai>  # génération des photos (Nano Banana 2)
+# optionnel, sinon fal-ai/nano-banana-2/edit par défaut
+FAL_IMAGE_MODEL=fal-ai/nano-banana-2/edit
 ```
 
 Ni le fichier JSON ni son contenu ne doivent jamais être commités sur

@@ -165,7 +165,7 @@ if st.session_state.draft is not None and not st.session_state.draft.questions:
                 "une personne générée librement."
             )
         st.info(
-            "La génération appelle un modèle image (~0,07 $/photo, 4 photos + "
+            "La génération appelle un modèle image (~0,08 $/photo, 4 photos + "
             "vérification). Valide seulement quand tu es prêt."
         )
         if st.button("Valider et générer les 4 photos"):

@@ -56,11 +56,11 @@ _Avoid_: Catalogue de moods
 Premier livrable, validé isolément : photo(s) → JSON (`titre`, `description`, `mood`, `questions`), via Streamlit, boucle de feedback en session.
 
 **PoC-2 (V2)**:
-Second livrable : indexation de la bibliothèque, sélection des `decor_refs`/mannequin, génération des 4 plans par modèle image natif (Gemini via OpenRouter), check de fidélité, galerie. Remplace la première version (segmentation Bria + inpainting Flux + composite via Fal.ai), abandonnée après le test humain du 2026-09-24 : elle ne pouvait pas produire de vêtement porté ni de cohérence, et son prompt était quasi vide.
-_Avoid_: PoC-2 initial / Fal (abandonné)
+Second livrable : indexation de la bibliothèque, sélection des `decor_refs`/mannequin, génération des 4 plans par modèle image natif (Nano Banana 2 = Gemini image, via Fal.ai), check de fidélité, galerie. Remplace la première version (segmentation Bria + inpainting Flux + composite, aussi via Fal.ai), abandonnée après le test humain du 2026-09-24 : elle ne pouvait pas produire de vêtement porté ni de cohérence, et son prompt était quasi vide.
+_Avoid_: PoC-2 initial (segmentation + inpainting, abandonné)
 
 **Validation**:
-L'étape, dans la même fenêtre de chat que la génération du texte, où l'utilisateur approuve le plan (mood, `decor_refs`) avant que la génération d'image — coûteuse (~0,07 $ par plan) — ne soit déclenchée.
+L'étape, dans la même fenêtre de chat que la génération du texte, où l'utilisateur approuve le plan (mood, `decor_refs`) avant que la génération d'image — coûteuse (~0,08 $ par plan) — ne soit déclenchée.
 
 ## Décisions à ne pas re-litiger
 
