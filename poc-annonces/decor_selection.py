@@ -44,7 +44,7 @@ SELECT_PROMPT = (
     "référence de ma bibliothèque de style (décor/mise en scène, pas le "
     "même vêtement). Choisis 2 à 3 références (par leur index, en partant "
     "de 0) qui conviendraient comme inspiration de décor pour cet article, "
-    "et donne un mood en 2 à 5 mots dérivé de ce choix."
+    "et donne un mood en français, en 2 à 5 mots, dérivé de ce choix."
 )
 
 

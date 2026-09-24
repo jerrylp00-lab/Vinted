@@ -25,7 +25,7 @@ class _FakeMediaRequest:
     def __init__(self, content: bytes):
         self._content = content
 
-    def execute(self):
+    def execute(self, **kwargs):
         return self._content
 
 

@@ -36,9 +36,10 @@ DESCRIBE_SCHEMA = {
 }
 
 DESCRIBE_PROMPT = (
-    "Décris en une phrase courte le style visuel de cette photo de référence "
-    "(décor, ambiance, mise en scène, pose) et donne 2 à 4 tags de style. "
-    "Ne décris pas le vêtement lui-même, seulement le décor/l'ambiance."
+    "Décris en français, en une phrase courte, le style visuel de cette photo "
+    "de référence (décor, ambiance, mise en scène, pose) et donne 2 à 4 tags "
+    "de style en français. Ne décris pas le vêtement lui-même, seulement le "
+    "décor/l'ambiance."
 )
 
 
@@ -74,7 +75,7 @@ def list_children(service, folder_id: str) -> list[dict]:
 
 
 def download_file(service, file_id: str) -> bytes:
-    return service.files().get_media(fileId=file_id).execute()
+    return service.files().get_media(fileId=file_id).execute(num_retries=3)
 
 
 def walk_library(service, root_folder_id: str) -> list[dict]:
