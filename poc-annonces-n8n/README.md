@@ -88,3 +88,17 @@ Nouveaux champs : `jobs.drive_output_folder_id` ; `shots.erreur`, `courant`, `br
 Test réel (job `mufe74xl35gs`, t-shirt Peggy Sue's Diner, 2 références) : validation → 4 plans en environ 1 minute, tous sur Fal. Le plan `porte_miroir` a dérivé (texte du t-shirt modifié), a été retenté une fois, reste signalé avec ses problèmes ; les 3 autres sont conformes. Coût des images : 0,40 $ (le contrôle de fidélité coûte des millièmes de dollar). Régénération du plan `detail` avec consigne : 2 tentatives (la première dérivait), statut revenu à `galerie_prete`, total 0,56 $. Le repli OpenRouter n'a pas été exercé (Fal a du crédit) et le plafond de 1 $ n'a pas été atteint en test.
 
 Limites connues : si une étape plante hors des cas prévus (ex. Drive indisponible), le plan n'écrit pas de ligne et le job reste en `generation_en_cours` (pas de reprise automatique ; un workflow d'erreur global reste à prévoir). Le « garder » d'un plan (colonne `garde`) et les pouces arrivent avec l'étape 5. Le brief de chaque tentative est conservé dans `shots.brief` ; le `log.json` Drive est à faire à l'étape 5.
+
+## Étape 5 — Feedback et journal Drive (2026-09-24)
+
+| Workflow | ID | Rôle |
+|---|---|---|
+| `VFN — Feedback (webhook)` | `DgoKnyLMpuLqabFh` | `POST /webhook/vfn/job/feedback` `{job_id, cible, note, raisons?, commentaire?}`. `cible` : `description`, `plan:<porte_miroir\|a_plat\|cintre\|detail>` ou `global` (note finale). `note` : `up` / `down` (stockée 👍 / 👎). Un nouvel avis sur la même cible **remplace** le précédent (les régénérations, signal implicite, restent en lignes séparées). Les `raisons` doivent appartenir au vocabulaire de la cible (ligne `config_feedback` de `prompts`, modifiable) sinon 400 avec la liste autorisée ; 404 si le job n'existe pas ; 409 pour un avis sur un plan avant que la galerie soit prête. La note `global` passe le job à `termine` et écrit le journal. |
+| `VFN — Garder un plan (webhook)` | `TrqnPOfRw7NLEEzz` | `POST /webhook/vfn/job/garder` `{job_id, plan, garde: true/false}` : coche ou décoche « Garder » sur le plan courant. |
+| `VFN — Écrire le journal Drive (sous-workflow)` | `LtGZGU42Lkx2ip3u` | Écrit `log.json` dans le dossier Drive du job (créé la première fois, puis mis à jour ; son id est dans `jobs.drive_log_file_id`) : entrées, texte et historique de l'échange, références et mannequin, versions de prompt, toutes les tentatives d'image avec leur brief exact, verdicts, feedback, coûts. Appelé quand la galerie est prête et à la note finale. |
+
+`GET /job-status` renvoie aussi `feedback` (dernier avis explicite par cible, avec raisons et commentaire). Vocabulaire initial des raisons de 👎 : description (`faits_faux`, `ton_inadapte`, `trop_court`, `trop_long`, `info_manquante`, `autre`), plan (`couleur_fausse`, `vetement_deforme`, `texte_ou_imprime_modifie`, `ambiance_ratee`, `rendu_irrealiste`, `autre`), global (`qualite_photos`, `qualite_texte`, `ambiance_ratee`, `trop_cher`, `autre`).
+
+Test réel sur `mufe74xl35gs` : 👍 description, puis changement d'avis en 👎 « trop court » (remplacé, pas dupliqué) ; 👎 sur `porte_miroir` avec raison et commentaire ; raison inconnue → 400 ; job inconnu → 404 ; « garder » décoché sur `porte_miroir` ; note finale 👍 avec commentaire → statut `termine` ; `log.json` créé dans le dossier du job (17 Ko).
+
+Limite : si les 4 plans finissent au même instant, deux `log.json` pourraient être créés la première fois (risque faible, sans conséquence sur les données).
