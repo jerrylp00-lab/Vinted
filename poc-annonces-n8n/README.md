@@ -71,3 +71,20 @@ Nouveaux champs de `jobs` : `avertissements` (JSON, ex. « pas de mannequin pour
 Tests (en production, avec le secret) : sélection sur un job `femme/veste` restreint aux moods `urbain_minimaliste` et `streetwear_decontracte` → 2 références cohérentes en ~10 s pour 0,0001 $ ; validation avec mood et référence corrigés → statut `generation_en_cours`, corrections appliquées ; seconde validation → 409.
 
 Le front devra afficher les images de `decor_refs` : il faudra un endpoint d'aperçu des photos Drive (étape 6), les fichiers n'étant pas publics.
+
+## Étape 4 — Génération des 4 plans (2026-09-24)
+
+| Workflow | ID | Rôle |
+|---|---|---|
+| `VFN — Tentative image (sous-workflow)` | `pGvWMH08Go4yGJYp` | Une tentative pour un plan : test du plafond de coût, assemblage du brief (prompts `brief_*`) et des références (photos du vêtement, decor_refs, mannequin sur le plan porté), appel Fal (Nano Banana 2) avec repli OpenRouter sur 402/403, check de fidélité (LLM vision), envoi sur Drive `output/`, ligne `shots`. Une panne du check ne perd pas l'image (`fidelite_verifiee = false`). |
+| `VFN — Générer un plan (sous-workflow)` | `HKMVyeJJQTSoBN6X` | Tentative 1, et 1 retry automatique avec les problèmes relevés si le vêtement dérive ; puis passe le job à `galerie_prete` (ou `budget_depasse`) quand les 4 plans ont une tentative courante. |
+| `VFN — Générer les 4 plans (sous-workflow)` | `9Y0O9Z4MO9wVM0xB` | Crée le dossier Drive `output/`, statut `generation_en_cours`, lance les 4 plans **en parallèle** (sans attendre). |
+| `VFN — Régénérer un plan (webhook)` | `MIeRXvNz9a4cwKIo` | `POST /webhook/vfn/job/plan` `{job_id, plan, feedback?, force?}` : refuse (409) si la galerie n'est pas prête ou si le plan est inconnu ; consigne un feedback négatif implicite dans `feedback` ; relance le plan. `force: true` outrepasse le plafond de coût. |
+
+Modifiés : `Valider le plan` lance maintenant la génération ; `GET /job-status` renvoie `plans[]` (état du plan courant : `en_attente` / `pret` / `erreur`, tentative, `drive_file_id`, fidélité, problèmes, coût du plan, fournisseur, `garde`) et les coûts `cout_texte`, `cout_images`, `cout_total`.
+
+Nouveaux champs : `jobs.drive_output_folder_id` ; `shots.erreur`, `courant`, `brief` (prompt exact envoyé), `fidelite_verifiee`. Nouveaux prompts (v1) : `brief_commun`, `brief_ref_vetement`, `brief_ref_decor`, `brief_ref_mannequin`, `brief_plan_{porte_miroir,a_plat,cintre,detail}`, `check_fidelite`, `config_plafond` (`plafond_usd` 1,0 ; `estimation_tentative_usd` 0,1) et `config_image` (modèles Fal et OpenRouter, format, résolution, coût par unité Fal).
+
+Test réel (job `mufe74xl35gs`, t-shirt Peggy Sue's Diner, 2 références) : validation → 4 plans en environ 1 minute, tous sur Fal. Le plan `porte_miroir` a dérivé (texte du t-shirt modifié), a été retenté une fois, reste signalé avec ses problèmes ; les 3 autres sont conformes. Coût des images : 0,40 $ (le contrôle de fidélité coûte des millièmes de dollar). Régénération du plan `detail` avec consigne : 2 tentatives (la première dérivait), statut revenu à `galerie_prete`, total 0,56 $. Le repli OpenRouter n'a pas été exercé (Fal a du crédit) et le plafond de 1 $ n'a pas été atteint en test.
+
+Limites connues : si une étape plante hors des cas prévus (ex. Drive indisponible), le plan n'écrit pas de ligne et le job reste en `generation_en_cours` (pas de reprise automatique ; un workflow d'erreur global reste à prévoir). Le « garder » d'un plan (colonne `garde`) et les pouces arrivent avec l'étape 5. Le brief de chaque tentative est conservé dans `shots.brief` ; le `log.json` Drive est à faire à l'étape 5.
