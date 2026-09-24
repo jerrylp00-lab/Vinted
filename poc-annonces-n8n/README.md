@@ -187,3 +187,5 @@ Limites : les exemples ne sont pas filtrés par utilisateur (toutes les annonces
 Référence avant : job `mufe74xl35gs`, mesuré le 2026-09-25 : cout_total=0.5610621, cout_images=0.56076, cout_texte≈0.0003 ; jeu de test : `Test_humain/Gemini/Input` (t-shirt Peggy Sue's, texte visible, photos non commitées).
 
 Script de mesure de coût : `scripts/measure_cost.sh <job_id>` (lit VFN_SECRET depuis `.env` ou l'environnement).
+
+- Colonnes ajoutées (2026-09-25) : library.description_en, library.utilisations ; jobs.marque, taille, mesures, etat, prix, texte_visible, garment_en, mannequin_desc, inspi_texte (JSON [{file_id, nom_fichier, description_en}]).
