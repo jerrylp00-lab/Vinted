@@ -15,7 +15,7 @@ Le test humain du 2026-09-24 (`Test_humain/`) a montré que le pipeline segmenta
 | Mannequin maison | Conservé, envoyé comme référence sur le plan « porté » uniquement. |
 | Plans | 4 fixes : porté (selfie miroir), à plat, cintre, détail. |
 | Appels | 4 appels séparés, un par plan (pleine résolution, régénération par plan). |
-| Modèle | Nano Banana 2 (Gemini image) via Fal.ai, `fal-ai/nano-banana-2/edit`, 0,08 $/image en 1K, `FAL_KEY` (crédit déjà acheté). Spike OpenRouter aussi validé (`google/gemini-3.1-flash-image`, ~0,07 $), non retenu pour utiliser le crédit Fal. |
+| Modèle | Nano Banana 2 (Gemini image) via Fal.ai, `fal-ai/nano-banana-2/edit`, 0,08 $/image en 1K, `FAL_KEY` (crédit déjà acheté). Spike OpenRouter aussi validé (`google/gemini-3.1-flash-image`, ~0,07 $), utilisé en repli automatique quand le crédit Fal est épuisé (`IMAGE_PROVIDER=auto`). |
 | Entrées | Photos brutes de téléphone (pas de nettoyage de cadres). |
 | Relecture | Galerie : garder / rejeter / régénérer un plan avec consigne libre. |
 | Succès | Meilleur que l'app Gemini. Test d'acceptation manuel sur le t-shirt Peggy Sue's. Coût loggé et affiché, sans plafond. |

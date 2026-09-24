@@ -7,7 +7,7 @@ import io
 import pytest
 from PIL import Image
 
-from image_gen import DEFAULT_IMAGE_MODEL, ImageGenerationError, generate_image
+from image_gen import FAL_DEFAULT_MODEL, ImageGenerationError, generate_image
 
 
 def _png(color=(10, 20, 30)) -> bytes:
@@ -55,21 +55,21 @@ def _ok(units="1.0"):
 
 
 def test_generate_image_decodes_image_and_estimates_cost():
-    result = generate_image("p", [_png()], session=FakeSession(_ok("1.0")), api_key="k")
+    result = generate_image("p", [_png()], session=FakeSession(_ok("1.0")), fal_key="k")
     assert result.image.getpixel((0, 0)) == (200, 0, 0)
     assert result.cost == pytest.approx(0.08)
 
 
 def test_generate_image_cost_scales_with_billable_units():
-    result = generate_image("p", [_png()], session=FakeSession(_ok("1.5")), api_key="k")
+    result = generate_image("p", [_png()], session=FakeSession(_ok("1.5")), fal_key="k")
     assert result.cost == pytest.approx(0.12)
 
 
 def test_generate_image_sends_prompt_and_references_as_image_urls():
     session = FakeSession(_ok())
-    generate_image("mon prompt", [_png(), _png((1, 1, 1))], session=session, api_key="k")
+    generate_image("mon prompt", [_png(), _png((1, 1, 1))], session=session, fal_key="k")
     call = session.calls[0]
-    assert call["url"].endswith(DEFAULT_IMAGE_MODEL)
+    assert call["url"].endswith(FAL_DEFAULT_MODEL)
     assert call["headers"]["Authorization"] == "Key k"
     assert call["json"]["prompt"] == "mon prompt"
     assert len(call["json"]["image_urls"]) == 2
@@ -81,29 +81,102 @@ def test_generate_image_sends_prompt_and_references_as_image_urls():
 def test_generate_image_model_from_env(monkeypatch):
     monkeypatch.setenv("FAL_IMAGE_MODEL", "fal-ai/autre/edit")
     session = FakeSession(_ok())
-    generate_image("p", [_png()], session=session, api_key="k")
+    generate_image("p", [_png()], session=session, fal_key="k")
     assert session.calls[0]["url"].endswith("fal-ai/autre/edit")
 
 
-def test_generate_image_without_key_raises(monkeypatch):
+def test_generate_image_without_any_key_raises(monkeypatch):
     monkeypatch.delenv("FAL_KEY", raising=False)
-    with pytest.raises(ImageGenerationError, match="FAL_KEY"):
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    with pytest.raises(ImageGenerationError, match="FAL_KEY ou OPENROUTER_API_KEY"):
         generate_image("p", [_png()], session=FakeSession(_ok()))
 
 
 def test_generate_image_no_image_in_response_raises():
     session = FakeSession(FakeResponse({"images": []}))
     with pytest.raises(ImageGenerationError, match="aucune image"):
-        generate_image("p", [_png()], session=session, api_key="k")
+        generate_image("p", [_png()], session=session, fal_key="k")
 
 
 def test_generate_image_http_error_raises():
     session = FakeSession(FakeResponse({"detail": "quota"}, status_code=429))
     with pytest.raises(ImageGenerationError, match="429"):
-        generate_image("p", [_png()], session=session, api_key="k")
+        generate_image("p", [_png()], session=session, fal_key="k")
 
 
 def test_generate_image_download_failure_raises():
     session = FakeSession(_ok(), download=FakeResponse(status_code=500))
     with pytest.raises(ImageGenerationError, match="illisible"):
-        generate_image("p", [_png()], session=session, api_key="k")
+        generate_image("p", [_png()], session=session, fal_key="k")
+
+
+# --- repli OpenRouter -------------------------------------------------------
+
+import base64
+
+
+def _openrouter_ok(cost=0.069):
+    url = "data:image/png;base64," + base64.b64encode(_png((0, 200, 0))).decode()
+    return FakeResponse(
+        {"choices": [{"message": {"images": [{"image_url": {"url": url}}]}}], "usage": {"cost": cost}}
+    )
+
+
+class RoutingSession:
+    """Répond selon l'hôte : Fal ou OpenRouter."""
+
+    def __init__(self, fal_response, openrouter_response):
+        self.fal_response = fal_response
+        self.openrouter_response = openrouter_response
+        self.calls = []
+
+    def post(self, url, headers=None, json=None, timeout=None):
+        self.calls.append(url)
+        return self.fal_response if "fal.run" in url else self.openrouter_response
+
+    def get(self, url, timeout=None):
+        return FakeResponse(content=_png((200, 0, 0)))
+
+
+def test_auto_uses_fal_when_key_present():
+    session = RoutingSession(_ok(), _openrouter_ok())
+    result = generate_image("p", [_png()], session=session, fal_key="k", openrouter_key="o")
+    assert result.image.getpixel((0, 0)) == (200, 0, 0)
+    assert all("fal.run" in url for url in session.calls)
+
+
+def test_auto_falls_back_to_openrouter_when_fal_credit_exhausted():
+    fal = FakeResponse({"detail": "Exhausted balance"}, status_code=403)
+    session = RoutingSession(fal, _openrouter_ok(0.069))
+    result = generate_image("p", [_png()], session=session, fal_key="k", openrouter_key="o")
+    assert result.image.getpixel((0, 0)) == (0, 200, 0)
+    assert result.cost == pytest.approx(0.069)
+    assert any("openrouter.ai" in url for url in session.calls)
+
+
+def test_auto_does_not_fall_back_on_non_billing_error():
+    fal = FakeResponse({"detail": "boom"}, status_code=500)
+    session = RoutingSession(fal, _openrouter_ok())
+    with pytest.raises(ImageGenerationError, match="500"):
+        generate_image("p", [_png()], session=session, fal_key="k", openrouter_key="o")
+    assert not any("openrouter.ai" in url for url in session.calls)
+
+
+def test_auto_without_fal_key_uses_openrouter():
+    session = RoutingSession(_ok(), _openrouter_ok())
+    result = generate_image("p", [_png()], session=session, fal_key=None, openrouter_key="o",
+                            provider="openrouter")
+    assert result.image.getpixel((0, 0)) == (0, 200, 0)
+
+
+def test_forced_fal_never_falls_back():
+    fal = FakeResponse({"detail": "Exhausted balance"}, status_code=403)
+    session = RoutingSession(fal, _openrouter_ok())
+    with pytest.raises(ImageGenerationError, match="403"):
+        generate_image("p", [_png()], session=session, fal_key="k", openrouter_key="o",
+                       provider="fal")
+
+
+def test_unknown_provider_raises():
+    with pytest.raises(ImageGenerationError, match="IMAGE_PROVIDER"):
+        generate_image("p", [_png()], session=FakeSession(_ok()), provider="midjourney")

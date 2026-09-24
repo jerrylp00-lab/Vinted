@@ -36,9 +36,11 @@ OPENROUTER_MODEL=google/gemini-2.5-flash-lite
 # Community Cloud — jamais les deux, GOOGLE_SERVICE_ACCOUNT_JSON prime)
 GOOGLE_SERVICE_ACCOUNT_FILE=/chemin/vers/service-account.json
 GOOGLE_DRIVE_ROOT_FOLDER_ID=<id du dossier "Modèles photos">
-FAL_KEY=<clé api fal.ai>  # génération des photos (Nano Banana 2)
-# optionnel, sinon fal-ai/nano-banana-2/edit par défaut
-FAL_IMAGE_MODEL=fal-ai/nano-banana-2/edit
+# Photos : Fal.ai tant que le crédit dure, repli automatique sur OpenRouter
+# (même OPENROUTER_API_KEY) quand Fal refuse pour crédit épuisé.
+FAL_KEY=<clé api fal.ai>
+# optionnel : auto (défaut) | fal | openrouter (force, sans repli)
+IMAGE_PROVIDER=auto
 ```
 
 Ni le fichier JSON ni son contenu ne doivent jamais être commités sur
