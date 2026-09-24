@@ -1,9 +1,5 @@
-"""Tests de la génération des photos de sortie (PoC-2).
-
-Mock les appels Fal.ai (FalClient.remove_background / .inpaint), pas la
-logique de composite : la préservation des pixels du vêtement est vérifiée
-avec de vraies opérations Pillow sur des images synthétiques.
-"""
+# tests/test_photo_generation.py
+"""Tests de l'orchestration PoC-2 V2. On injecte les générateurs (frontière HTTP)."""
 
 from __future__ import annotations
 
@@ -12,115 +8,148 @@ import io
 import pytest
 from PIL import Image
 
+from fidelity import FidelityError, FidelityVerdict
+from image_gen import GeneratedImage, ImageGenerationError
 from listing import ListingDraft
-from photo_generation import PhotoGenerationError, generate_listing_photos
+from photo_generation import generate_listing_photos, generate_shot
+from shots import SHOTS, SHOTS_BY_ID
+
+MANNEQUIN = b"MANNEQUIN-BYTES"
 
 
-def _make_photo(size=(100, 100), color=(255, 0, 0)) -> bytes:
-    image = Image.new("RGB", size, color=color)
+def _png(color=(120, 120, 120)) -> bytes:
     buffer = io.BytesIO()
-    image.save(buffer, format="PNG")
+    Image.new("RGB", (8, 8), color).save(buffer, format="PNG")
     return buffer.getvalue()
 
 
-def _make_foreground_rgba(size=(100, 100), fg_color=(255, 0, 0)) -> bytes:
-    """Simule un résultat de suppression de fond : carré central opaque, reste transparent."""
-    image = Image.new("RGBA", size, (0, 0, 0, 0))
-    for x in range(30, 70):
-        for y in range(30, 70):
-            image.putpixel((x, y), (*fg_color, 255))
-    buffer = io.BytesIO()
-    image.save(buffer, format="PNG")
-    return buffer.getvalue()
-
-
-class FakeFalClient:
-    def __init__(self, foreground: bytes, background_color=(0, 255, 0)):
-        self.foreground = foreground
-        self.background_color = background_color
-        self.inpaint_calls = []
-
-    def remove_background(self, photo: bytes) -> bytes:
-        return self.foreground
-
-    def inpaint(self, photo, mask, references, prompt):
-        self.inpaint_calls.append({"references": references, "prompt": prompt})
-        image = Image.new("RGB", (100, 100), self.background_color)
-        buffer = io.BytesIO()
-        image.save(buffer, format="JPEG")
-        return buffer.getvalue()
-
-
-def _draft(decor_refs=None, mannequin_ref=None):
+def _draft(mannequin=True) -> ListingDraft:
     return ListingDraft(
-        titre="Veste",
-        description="Une veste.",
-        mood="casual",
-        questions=[],
-        decor_refs=decor_refs or [b"ref-a", b"ref-b"],
-        decor_ref_labels=["a", "b"],
-        mannequin_ref=mannequin_ref,
+        titre="T-shirt",
+        description="d",
+        mood="rétro",
+        decor_refs=[_png((1, 1, 1)), _png((2, 2, 2))],
+        mannequin_ref=MANNEQUIN if mannequin else None,
     )
 
 
-def test_generates_requested_number_of_photos():
-    fal = FakeFalClient(_make_foreground_rgba())
-    outputs = generate_listing_photos([_make_photo()], _draft(), count=3, client=fal)
+class FakeGenerator:
+    def __init__(self, cost=0.07, fail_when=None):
+        self.calls = []
+        self.cost = cost
+        self.fail_when = fail_when
 
-    assert len(outputs) == 3
-
-
-def test_garment_pixels_preserved_in_composite():
-    fg_color = (255, 0, 0)
-    fal = FakeFalClient(_make_foreground_rgba(fg_color=fg_color), background_color=(0, 255, 0))
-    photo = _make_photo(color=fg_color)
-
-    outputs = generate_listing_photos([photo], _draft(), count=1, client=fal)
-
-    result = outputs[0].convert("RGB")
-    assert result.getpixel((50, 50)) == fg_color
-    assert result.getpixel((5, 5)) != fg_color
+    def __call__(self, prompt, references, **kwargs):
+        self.calls.append({"prompt": prompt, "references": references})
+        if self.fail_when and self.fail_when in prompt:
+            raise ImageGenerationError("quota dépassé")
+        return GeneratedImage(image=Image.new("RGB", (8, 8), (50, 60, 70)), cost=self.cost)
 
 
-def test_mannequin_ref_included_only_for_porte_outputs():
-    fal = FakeFalClient(_make_foreground_rgba())
-    draft = _draft(mannequin_ref=b"mannequin-bytes")
-
-    generate_listing_photos([_make_photo()], draft, count=4, porte_ratio=0.5, client=fal)
-
-    porte_calls = fal.inpaint_calls[:2]
-    flatlay_calls = fal.inpaint_calls[2:]
-
-    assert all(b"mannequin-bytes" in call["references"] for call in porte_calls)
-    assert all(b"mannequin-bytes" not in call["references"] for call in flatlay_calls)
+def _always_ok(originals, generated, **kwargs):
+    return FidelityVerdict(ok=True, problemes=[], cost=0.001)
 
 
-def test_no_mannequin_falls_back_to_flatlay_only():
-    fal = FakeFalClient(_make_foreground_rgba())
-    draft = _draft(mannequin_ref=None)
-
-    generate_listing_photos([_make_photo()], draft, count=2, porte_ratio=1.0, client=fal)
-
-    assert all(b"mannequin-bytes" not in call["references"] for call in fal.inpaint_calls)
+def _always_drift(originals, generated, **kwargs):
+    return FidelityVerdict(ok=False, problemes=["logo différent"], cost=0.001)
 
 
-def test_missing_angle_reuses_available_photos_not_invented():
-    fal = FakeFalClient(_make_foreground_rgba())
-    photo_a = _make_photo(color=(1, 1, 1))
-    photo_b = _make_photo(color=(2, 2, 2))
+def test_generates_four_results_in_shot_order_with_summed_cost():
+    generator = FakeGenerator(cost=0.07)
+    results = generate_listing_photos(
+        [_png()], _draft(), image_generator=generator, fidelity_checker=_always_ok
+    )
+    assert [r.shot_id for r in results] == [s.id for s in SHOTS]
+    assert all(r.image is not None and r.error is None for r in results)
+    assert all(r.cost == pytest.approx(0.071) for r in results)
+    assert len(generator.calls) == 4
 
-    outputs = generate_listing_photos([photo_a, photo_b], _draft(), count=3, client=fal)
 
-    assert len(outputs) == 3
+def test_mannequin_sent_only_on_porte_shot():
+    generator = FakeGenerator()
+    generate_listing_photos(
+        [_png()], _draft(), image_generator=generator, fidelity_checker=_always_ok
+    )
+    with_mannequin = [c for c in generator.calls if MANNEQUIN in c["references"]]
+    assert len(with_mannequin) == 1
+    assert "mirror selfie" in with_mannequin[0]["prompt"]
 
 
-def test_no_photos_raises_value_error():
-    fal = FakeFalClient(_make_foreground_rgba())
+def test_one_failing_shot_does_not_stop_the_others():
+    generator = FakeGenerator(fail_when="Very close-up")
+    results = generate_listing_photos(
+        [_png()], _draft(), image_generator=generator, fidelity_checker=_always_ok
+    )
+    by_id = {r.shot_id: r for r in results}
+    assert by_id["detail"].image is None
+    assert "quota dépassé" in by_id["detail"].error
+    assert all(by_id[i].image is not None for i in ("porte_miroir", "a_plat", "cintre"))
+
+
+def test_drift_triggers_exactly_one_retry_then_flags():
+    generator = FakeGenerator(cost=0.07)
+    result = generate_shot(
+        [_png()], _draft(), SHOTS_BY_ID["a_plat"],
+        image_generator=generator, fidelity_checker=_always_drift,
+    )
+    assert result.attempts == 2
+    assert len(generator.calls) == 2
+    assert result.image is not None
+    assert result.verdict.ok is False
+    assert result.cost == pytest.approx(2 * (0.07 + 0.001))
+    assert "logo différent" in generator.calls[1]["prompt"]  # le retry corrige la dérive
+
+
+def test_no_retry_when_faithful():
+    generator = FakeGenerator()
+    result = generate_shot(
+        [_png()], _draft(), SHOTS_BY_ID["a_plat"],
+        image_generator=generator, fidelity_checker=_always_ok,
+    )
+    assert result.attempts == 1
+    assert result.verdict.ok is True
+
+
+def test_fidelity_check_failure_keeps_image_without_verdict():
+    def broken_checker(originals, generated, **kwargs):
+        raise FidelityError("panne")
+
+    result = generate_shot(
+        [_png()], _draft(), SHOTS_BY_ID["cintre"],
+        image_generator=FakeGenerator(), fidelity_checker=broken_checker,
+    )
+    assert result.image is not None
+    assert result.verdict is None
+    assert result.attempts == 1
+
+
+def test_retry_failure_keeps_first_image():
+    calls = {"n": 0}
+
+    def flaky(prompt, references, **kwargs):
+        calls["n"] += 1
+        if calls["n"] == 2:
+            raise ImageGenerationError("filtre")
+        return GeneratedImage(image=Image.new("RGB", (8, 8)), cost=0.07)
+
+    result = generate_shot(
+        [_png()], _draft(), SHOTS_BY_ID["cintre"],
+        image_generator=flaky, fidelity_checker=_always_drift,
+    )
+    assert result.image is not None
+    assert result.verdict.ok is False
+    assert result.error is None
+
+
+def test_seller_feedback_reaches_the_prompt():
+    generator = FakeGenerator()
+    generate_shot(
+        [_png()], _draft(), SHOTS_BY_ID["detail"], feedback="plus lumineux",
+        image_generator=generator, fidelity_checker=_always_ok,
+    )
+    assert "plus lumineux" in generator.calls[0]["prompt"]
+
+
+def test_requires_at_least_one_photo():
     with pytest.raises(ValueError):
-        generate_listing_photos([], _draft(), client=fal)
-
-
-def test_missing_fal_key_raises_error(monkeypatch):
-    monkeypatch.delenv("FAL_KEY", raising=False)
-    with pytest.raises(PhotoGenerationError):
-        generate_listing_photos([_make_photo()], _draft())
+        generate_listing_photos([], _draft(), image_generator=FakeGenerator())

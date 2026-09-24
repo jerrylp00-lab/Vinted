@@ -15,7 +15,8 @@ from decor_selection import DecorSelectionError, select_decor_refs
 from drive_client import build_drive_service
 from library import LibraryError, load_index
 from listing import DEFAULT_MODEL, FALLBACK_MODELS, ListingError, generate_listing_draft
-from photo_generation import PhotoGenerationError, generate_listing_photos
+from photo_generation import generate_listing_photos, generate_shot
+from shots import SHOTS_BY_ID
 
 load_dotenv()
 
@@ -33,6 +34,8 @@ if "photos" not in st.session_state:
     st.session_state.photos = None
 if "generated_photos" not in st.session_state:
     st.session_state.generated_photos = None
+if "spent" not in st.session_state:
+    st.session_state.spent = 0.0
 
 with st.sidebar:
     st.subheader("Modèle")
@@ -44,6 +47,7 @@ with st.sidebar:
         st.session_state.draft = None
         st.session_state.photos = None
         st.session_state.generated_photos = None
+        st.session_state.spent = 0.0
         st.rerun()
 
 uploaded_files = st.file_uploader(
@@ -105,6 +109,34 @@ def _load_decor_index():
     return load_index()
 
 
+def render_gallery() -> None:
+    results = st.session_state.generated_photos
+    st.caption(f"Coût cumulé de la fiche : {st.session_state.spent:.3f} $")
+    columns = st.columns(2)
+    for index, result in enumerate(results):
+        with columns[index % 2]:
+            st.markdown(f"**{result.label}**")
+            if result.image is not None:
+                st.image(result.image)
+            if result.error:
+                st.error(result.error)
+            if result.verdict is not None and not result.verdict.ok:
+                st.warning("Dérive possible : " + " ; ".join(result.verdict.problemes))
+            st.checkbox("Garder", value=result.image is not None, key=f"keep_{result.shot_id}")
+            feedback = st.text_input("Consigne (optionnel)", key=f"feedback_{result.shot_id}")
+            if st.button("Régénérer ce plan", key=f"regen_{result.shot_id}"):
+                with st.spinner("Régénération…"):
+                    new_result = generate_shot(
+                        st.session_state.photos,
+                        st.session_state.draft,
+                        SHOTS_BY_ID[result.shot_id],
+                        feedback=feedback or None,
+                    )
+                st.session_state.spent += new_result.cost
+                st.session_state.generated_photos[index] = new_result
+                st.rerun()
+
+
 if st.session_state.draft is not None and not st.session_state.draft.questions:
     st.divider()
     st.subheader("Style et photos (PoC-2)")
@@ -127,23 +159,22 @@ if st.session_state.draft is not None and not st.session_state.draft.questions:
         st.write(f"Références choisies : {', '.join(st.session_state.draft.decor_ref_labels)}")
         st.caption(f"Mood affiné : {st.session_state.draft.mood}")
 
-        count = st.number_input("Nombre de photos à générer", min_value=1, max_value=6, value=3)
-        porte_ratio = st.slider("Proportion \"porté\"", 0.0, 1.0, 0.5)
-
+        if st.session_state.draft.mannequin_ref is None:
+            st.info(
+                "Pas de mannequin maison pour ce genre : le plan porté utilisera "
+                "une personne générée librement."
+            )
         st.info(
-            "La génération d'image appelle Fal.ai et a un coût réel "
-            "(~0,10-0,15 $/photo). Valide seulement quand tu es prêt."
+            "La génération appelle un modèle image (~0,07 $/photo, 4 photos + "
+            "vérification). Valide seulement quand tu es prêt."
         )
-        if st.button("Valider et générer les photos"):
-            try:
-                st.session_state.generated_photos = generate_listing_photos(
-                    st.session_state.photos,
-                    st.session_state.draft,
-                    count=int(count),
-                    porte_ratio=porte_ratio,
+        if st.button("Valider et générer les 4 photos"):
+            with st.spinner("Génération des 4 plans (≈ 15 s)…"):
+                results = generate_listing_photos(
+                    st.session_state.photos, st.session_state.draft
                 )
-            except PhotoGenerationError as exc:
-                st.error(str(exc))
+            st.session_state.generated_photos = results
+            st.session_state.spent += sum(r.cost for r in results)
 
     if st.session_state.generated_photos:
-        st.image(st.session_state.generated_photos)
+        render_gallery()

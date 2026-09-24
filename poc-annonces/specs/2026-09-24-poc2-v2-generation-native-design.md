@@ -48,7 +48,7 @@ Couche par plan (contenu repris du prompt Gemini validé par l'utilisateur) :
 3. Cintre : cintre bois, mur blanc cassé à moulures, arrière-plan flou (portant, chaise vintage).
 4. Détail : plan très rapproché, tenu par une main, focus texture/boutons/coutures, lumière directe.
 
-Cas limite : pas de `mannequin_ref` pour le genre → plan porté remplacé par un plan à plat, comme aujourd'hui.
+Cas limite : pas de `mannequin_ref` pour le genre → le plan porté est quand même généré, sans référence mannequin (personne générée librement). Remplacer le plan par un second à plat aurait dupliqué un plan existant.
 
 ## Fidélité, erreurs, coût
 
