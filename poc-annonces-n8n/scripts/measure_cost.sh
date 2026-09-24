@@ -54,7 +54,7 @@ print(f"statut={statut} cout_texte={cout_texte} cout_images={cout_images} cout_t
 plans = data.get("plans", [])
 for plan in plans:
     plan_name = plan.get("plan", "")
-    plan_cost = plan.get("cout", 0)
+    plan_cost = plan.get("cout_plan", 0)
     plan_provider = plan.get("fournisseur", "")
     print(f"{plan_name} {plan_cost} {plan_provider}")
 PY
