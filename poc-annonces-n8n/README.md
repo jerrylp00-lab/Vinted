@@ -60,6 +60,8 @@ Reste : les lignes de test de la table `jobs` (`test1` et deux jobs de `test_job
 
 ## Étape 3 — Sélection du style et validation (2026-09-24)
 
+> Remplacé à l'étape 9 : la sélection du style n'appelle plus de LLM (pool filtré et trié par `utilisations`, choix final humain), le mannequin n'est plus une image mais une description texte (`config_mannequins` v2 : genre → description ; v1 genre → id Drive, inactif). Voir « Étape 9 ».
+
 | Workflow | ID | Rôle |
 |---|---|---|
 | `VFN — Sélectionner le style (sous-workflow)` | `FI9HyhPdvbATuSqw` | Filtre `library` (actif, même genre et type, moods autorisés ; à défaut même genre et moods avec avertissement ; sinon aucune référence), tire jusqu'à 10 candidates, jugement visuel du LLM (`selection_style`) qui en garde 2 à 3 et dérive le mood, associe le mannequin du genre (`config_mannequins`). Statut → `en_attente_validation`. |
@@ -73,6 +75,8 @@ Tests (en production, avec le secret) : sélection sur un job `femme/veste` rest
 Le front devra afficher les images de `decor_refs` : il faudra un endpoint d'aperçu des photos Drive (étape 6), les fichiers n'étant pas publics.
 
 ## Étape 4 — Génération des 4 plans (2026-09-24)
+
+> Remplacé à l'étape 9 : 3 plans (`porte_miroir`, `cintre`, `detail`), plus de plan `a_plat`, une seule tentative par plan (plus de retry automatique), plus de check de fidélité, plus d'image de mannequin envoyée. Voir « Étape 9 ».
 
 | Workflow | ID | Rôle |
 |---|---|---|
@@ -91,6 +95,8 @@ Limites connues : si une étape plante hors des cas prévus (ex. Drive indisponi
 
 ## Étape 5 — Feedback et journal Drive (2026-09-24)
 
+> Remplacé à l'étape 9 : les cibles de feedback par plan sont `porte_miroir`, `cintre`, `detail` ; le journal ne contient plus de données de fidélité vérifiée (`fidelite_verifiee = false`). Voir « Étape 9 ».
+
 | Workflow | ID | Rôle |
 |---|---|---|
 | `VFN — Feedback (webhook)` | `DgoKnyLMpuLqabFh` | `POST /webhook/vfn/job/feedback` `{job_id, cible, note, raisons?, commentaire?}`. `cible` : `description`, `plan:<porte_miroir\|a_plat\|cintre\|detail>` ou `global` (note finale). `note` : `up` / `down` (stockée 👍 / 👎). Un nouvel avis sur la même cible **remplace** le précédent (les régénérations, signal implicite, restent en lignes séparées). Les `raisons` doivent appartenir au vocabulaire de la cible (ligne `config_feedback` de `prompts`, modifiable) sinon 400 avec la liste autorisée ; 404 si le job n'existe pas ; 409 pour un avis sur un plan avant que la galerie soit prête. La note `global` passe le job à `termine` et écrit le journal. |
@@ -104,6 +110,8 @@ Test réel sur `mufe74xl35gs` : 👍 description, puis changement d'avis en 👎
 Limite : si les 4 plans finissent au même instant, deux `log.json` pourraient être créés la première fois (risque faible, sans conséquence sur les données).
 
 ## Étape 6 — Front HTML et endpoints associés (2026-09-24)
+
+> Remplacé à l'étape 9 : le front décrit ici (4 plans, avertissement de fidélité, mannequin) a été refait : formulaire, choix humain des inspirations, écran de relecture, galerie à 3 plans. Voir « Étape 9 ».
 
 Front : `front/index.html`, un seul fichier sans dépendance. Il se lance en local (`cd poc-annonces-n8n/front && python3 -m http.server 8765`, puis http://127.0.0.1:8765) ou en l'ouvrant directement. Au premier lancement, la fenêtre **Réglages** demande l'URL des webhooks (par défaut `https://178-105-102-54.sslip.io/webhook/vfn`) et le secret ; ils sont gardés dans le `localStorage` du navigateur, jamais dans le fichier. Sélecteur d'utilisateur en haut (liste lue dans la table `users`).
 
@@ -130,6 +138,8 @@ Testé : endpoints en `curl` ; front dans le navigateur intégré sur une fiche 
 Limite : le fichier `front/index.html` n'a pas de style final ; c'est le fond fonctionnel, à habiller dans la phase design.
 
 ## Étape 7 — Ajustement des prompts (2026-09-24)
+
+> Remplacé à l'étape 9 : il n'y a plus de dérive de fidélité (le check est supprimé), donc ce signal est toujours vide ; `meta_ajustement` v1 décrit encore 4 photos et un check de fidélité. Voir « Étape 9 », limites connues.
 
 Boucle voulue : **propose → tu lis le diff → tu actives ou pas → retour arrière possible**. Aucun prompt n'est jamais modifié automatiquement.
 
@@ -199,3 +209,20 @@ Script de mesure de coût : `scripts/measure_cost.sh <job_id>` (lit VFN_SECRET d
 - Front (2026-09-25, `front/index.html`) : **formulaire** avec marque, taille, mesures, état (suggestions Vinted), prix et case « texte ou logo lisible » (`texte_visible` = `"true"`/`"false"`), plus de choix de moods à la création (`moods_autorises` = tous). **Texte** : bloc « Questions du modèle » supprimé, feedback renommé « Feedback sur le texte », `garment_en` éditable (même brouillon que l'écran de relecture). **Style** : chips de moods de `/config` (un seul mood = mood de la fiche, qui filtre aussi la grille ; second clic = aucun filtre), grille des photos actives de `GET /library` du genre (insensible à la casse) et du type de la fiche (case « Tous les types » pour élargir), triée par `utilisations` décroissantes, avec boutons exclusifs « Vision » (2 max) / « Texte » (3 max) et « Utiliser comme inspi pour la génération » (vision si place, sinon texte) ; présélection = `decor_refs` / `inspi_texte` au premier affichage de la fiche en `en_attente_validation` seulement (les rafraîchissements n'écrasent pas la sélection) ; dépôt d'une nouvelle inspiration depuis la fiche (`/library/upload`, les `drive_file_ids` renvoyés entrent dans la sélection, grille rechargée 20 s après). **Écran « Ce que l'IA va voir »** : `garment_en`, `mannequin_desc` (textareas), 2 miniatures vision, descriptions anglaises des inspirations texte (tronquées, « voir tout »), mood en liste fermée, case « Photo portée : sans miroir » préréglée sur `texte_visible` ; « Générer les 3 photos » (~0,25 $) appelle `POST /job/valider`, les 400 s'affichent en toast. **Galerie** : 3 plans (Porté, Sur cintre, Détail), plus aucune mention de fidélité, photo d'origine à gauche et image générée à droite, pastilles (`/config.pastilles`) + consigne libre envoyées à `POST /job/plan`, étalonnage côté front à l'affichage et au téléchargement (constante `GRADE` en tête du script : saturate 0,82, sepia 0,10, contrast 0,97, brightness 1,02, grain 60 000 points à 6 %, JPEG 0,92 ; repli pixel par pixel si le canvas ne gère pas `ctx.filter`), bouton « Voir brut ». Photo d'origine : aucun endpoint ne sert les photos d'entrée d'une fiche (`/job-status` ne les liste pas et `/image` les refuse), le front garde donc la 1re photo en mémoire pour une fiche créée dans la session et l'omet sinon. Les images téléchargées restent celles de `/image` (jpeg réduit à 1000 px). Vérifié dans le navigateur intégré sans appel payant : galerie de `mufsjqprkf3m`, et fiche de test `muftpawvta7x` (Peggy Sue's) menée jusqu'à l'écran de relecture, laissée en `en_attente_validation`.
 - **Photos d'origine côte à côte** : `GET /job-status` renvoie `input_photo_ids` (ids Drive des images du `drive_input_folder_id` du job, triées par nom ; `[]` si dossier absent ou erreur Drive, sans casser la réponse ; un listage Drive par poll). `GET /image` accepte en plus tout id dont le parent Drive (API `files/{id}?fields=parents`) est le `drive_input_folder_id` d'un job de la table, fichier image non supprimé ; les autres ids restent en 404. Vérifié sur `mufsjqprkf3m` : 3 ids, jpeg 200, id aléatoire 404, sans en-tête 403. Le front affiche `input_photo_ids[0]` à gauche de chaque plan (repli sur la photo en mémoire si la liste est vide).
 - Test de basse résolution (2026-09-25, mesure sans décision) : Fal `nano-banana-2/edit` accepte `resolution` = 0.5K, 1K, 2K, 4K ; prix Fal 0,08 $ à 1K, multiplicateurs 0.5K = 0,75x (0,06 $), 2K = 1,5x, 4K = 2x (page du modèle sur fal.ai). Le sous-workflow multiplie déjà par les unités facturées : à 0.5K le coût enregistré est 0,75 x `fal_cost_per_unit_usd`, donc laisser `fal_cost_per_unit_usd` à 0,08 (la version 3 de test le met à 0,06 par erreur, coût enregistré 0,045 $ au lieu de 0,06 $ réel). Test sur `mufsjqprkf3m`, plan `cintre` : image 448x592 px à 0.5K contre 747x1000 px pour la version 1K. v1 (1K) actif en attendant décision ; config_image v3 = basse résolution (0.5K) prête à activer (v2 = copie de v1, inchangée ; l'outil MCP ne permet pas de modifier une ligne, d'où une v3 ajoutée).
+
+### Étape 9 — résultat de bout en bout, coûts, décisions, limites (2026-09-25)
+
+- **Test de bout en bout par le front** (fiche `muftpawvta7x`, t-shirt Peggy Sue's, mood `vintage_retro`, 2 inspirations vision + 2 inspirations texte via « Tous les types », « Générer les 3 photos » cliqué une fois) : `galerie_prete` en ~25 s, 3 plans en 1 tentative chacun (Fal, 0,08 $ l'image), aucune donnée de fidélité, `log.json` présent dans le dossier Drive du job (`drive_log_file_id`). Les briefs (`shots.brief`) contiennent `garment_en` et le bloc des inspirations texte ; `porte_miroir` utilise la variante sans miroir (texte lisible non inversé) et contient la description du mannequin ; `cintre` et `detail` n'en contiennent aucune. `library.utilisations` a été incrémentée pour les 4 inspirations retenues. Galerie : photo d'origine à gauche, image étalonnée à droite, « Voir brut » fonctionne, 6 pastilles visibles.
+- **Coûts** : avant (job `mufe74xl35gs`, 4 images dont un retry) `cout_total` 0,5610621 $ ; après (job `muftpawvta7x`, 3 images) `cout_images` 0,24 $, `cout_texte` 0,0002003 $, `cout_total` 0,2402003 $ (-57 %).
+- **Résolution : le 0.5K est rejeté.** Le texte imprimé se dégrade à 0.5K, et Fal facture 0,75x (0,06 $), soit une économie trop faible. Production reste en 1K (`config_image` v1 actif). `config_image` v2 (copie de v1 avec 0.5K) et v3 (variante 0.5K avec une remise erronée) sont inactifs et inutilisés ; ne pas réutiliser le `fal_cost_per_unit_usd` de v3 (le sous-workflow multiplie déjà par les unités facturées).
+- **Limites connues / restes à faire** :
+  - `meta_ajustement` v1 décrit encore 4 photos et un check de fidélité.
+  - Le workflow de proposition de prompts `5K6sfWDDQVc8NpI4` : son signal de dérive de fidélité est désormais toujours vide.
+  - Le workflow Garder `TrqnPOfRw7NLEEzz` accepte encore `a_plat`.
+  - `/job-status` fait un listage Drive par poll (pour `input_photo_ids`).
+  - Fichiers de test laissés dans Drive/bibliothèque : photos inactives `1AAsnk4COM1pf6iXF-kWEr8ay1x9PLVVz` et `1Q5vOu3QGvu0be-Ju3Wp1qCHlpBotqueY` (genre en minuscules).
+  - Ligne de feedback implicite 👎 sur le job `mufsjqprkf3m`, plan `porte_miroir`, issue de la régénération de test.
+  - Jobs de test créés à l'étape 9 à supprimer de la table `jobs` via l'UI n8n : `mufsg4szpyuj`, `mufsgkl0io7i`, `mufsjqprkf3m`, `muftpawvta7x` (et tout autre job de test).
+  - L'étalonnage n'est appliqué que côté front : les fichiers Drive restent bruts.
+  - CORS : l'en-tête `Access-Control-Allow-Origin` de `/image` est mis en cache par URL sans `Vary: Origin` côté serveur ; ouvrir le front depuis deux origines différentes (`localhost` puis `127.0.0.1`) fait échouer les images déjà chargées depuis l'autre origine. Utiliser une seule origine.
+  - Sauvegarde : `VFN — Sauvegarde (manuelle)` (`DD9ug6YEISQkIYgP`) n'a pas de version publiée, donc `execute_workflow` en mode production est refusé ; en mode manuel, l'exécution 569 est restée « running » sans exécuter de nœud (déclencheur manuel en attente). À lancer depuis l'UI n8n (bouton « Sauvegarder maintenant »).
