@@ -189,3 +189,4 @@ Référence avant : job `mufe74xl35gs`, mesuré le 2026-09-25 : cout_total=0.561
 Script de mesure de coût : `scripts/measure_cost.sh <job_id>` (lit VFN_SECRET depuis `.env` ou l'environnement).
 
 - Colonnes ajoutées (2026-09-25) : library.description_en, library.utilisations ; jobs.marque, taille, mesures, etat, prix, texte_visible, garment_en, mannequin_desc, inspi_texte (JSON [{file_id, nom_fichier, description_en}]).
+- Prompts ajoutés le 2026-09-25 (tous inactifs, activation dans les tâches consommatrices) : brief_commun v2, brief_ref_mannequin v2, config_mannequins v2, brief_plan_porte_sans_miroir v1, brief_garment_en v1, brief_inspi_texte v1, config_pastilles v1, texte_fiche v3, indexation_photo v2, config_image v2.
