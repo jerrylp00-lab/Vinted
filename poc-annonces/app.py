@@ -8,6 +8,8 @@ photos de sortie.
 
 from __future__ import annotations
 
+import io
+
 import streamlit as st
 from dotenv import load_dotenv
 
@@ -146,4 +148,14 @@ if st.session_state.draft is not None and not st.session_state.draft.questions:
                 st.error(str(exc))
 
     if st.session_state.generated_photos:
-        st.image(st.session_state.generated_photos)
+        for i, photo in enumerate(st.session_state.generated_photos):
+            st.image(photo)
+            buffer = io.BytesIO()
+            photo.save(buffer, format="JPEG")
+            st.download_button(
+                f"Télécharger la photo {i + 1}",
+                data=buffer.getvalue(),
+                file_name=f"vinted_photo_{i + 1}.jpg",
+                mime="image/jpeg",
+                key=f"download_{i}",
+            )
