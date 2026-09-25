@@ -349,7 +349,7 @@ Statuts d'un job : `texte_en_cours` → `texte_pret` → `selection_en_cours` �
 ### Fiche : suite de la génération, historique, erreurs
 
 **29. Générer la suite** (`RD2H9Cb4CApoAxMw`, `POST /job/suite` `{job_id}`)
-- Appelé par le front une fois la première photo (`porte_miroir`) validée. 404 si job inconnu. 409 si le job n'est pas `premiere_prete`, ou si la première photo est en erreur ou sans image. Sinon : statut `generation_en_cours`, **répond `{job_id, statut}`**, puis lance le sous-workflow 8 pour `cintre` et `detail` (sans attendre).
+- Appelé par le front une fois la première photo (`porte_miroir`) validée. 409 `{error:"job introuvable"}` si job inconnu (et non 404). 409 si le job n'est pas `premiere_prete`, ou si la première photo est en erreur ou sans image. Sinon : statut `generation_en_cours`, **répond `{job_id, statut}`**, puis lance le sous-workflow 8 pour `cintre` et `detail` (sans attendre).
 - Limite connue : pas de garde atomique contre un double appel (deux appels rapprochés lanceraient deux fois les plans).
 
 **30. Lire les fiches (historique)** (`OUNyHxzNFzlY0oLQ`, `GET /jobs`)
@@ -360,9 +360,9 @@ Statuts d'un job : `texte_en_cours` → `texte_pret` → `selection_en_cours` �
 **31. Erreurs et fiches bloquées** (`TvTJZ1U0bYgvwbug`)
 - Deux déclencheurs : `Error Trigger` (réglé comme `errorWorkflow` sur 11 workflows, voir la vue d'ensemble) et planificateur toutes les 2 minutes. Lit `jobs` et `shots` en entier, un nœud `Décider` produit une action, un `Switch` l'aiguille (`shot` : insérer un plan en échec, `job` : mettre à jour la fiche, `msg` : écrire seulement un message).
 - **Chemin erreur** : identifie la fiche comme l'unique fiche dans le statut occupé qui correspond au workflow en échec (Texte → `texte_en_cours`, Style → `selection_en_cours`, Photos → `generation_en_cours`). Échec texte ou style : `statut = erreur` et `erreur = "Texte : …"` / `"Style : …"` tout de suite. Échec photos : écrit seulement `erreur = "Photos : …"` (type `msg`, statut inchangé).
-- **Chien de garde** (planificateur) : fiche occupée depuis plus de 4 min (texte), 3 min (style), 8 min (photos ; 1,5 min si un message d'erreur `Photos` est déjà noté) : texte/style passent en `erreur` avec message ; photos : insère un plan en échec (`erreur "Photos : …"`, `courant = true`) pour chaque plan manquant puis fixe le statut (`premiere_prete`, `galerie_prete` ou `budget_depasse`) avec `erreur ''`. Si seul `porte_miroir` existe (étape 1), rien n'est inséré.
+- **Chien de garde** (planificateur) : fiche occupée depuis plus de 4 min (texte), 3 min (style), 8 min (photos ; 6 min si un message d'erreur `Photos` est déjà noté) : texte/style passent en `erreur` avec message ; photos : insère un plan en échec (`erreur "Photos : …"`, `courant = true`) pour chaque plan manquant puis fixe le statut (`premiere_prete`, `galerie_prete` ou `budget_depasse`) avec `erreur ''`. Si seul `porte_miroir` existe (étape 1), rien n'est inséré.
 - Vérifié : l'Error Trigger se déclenche aussi pour les échecs de sous-workflows (exécutions 702 et 703, une par workflow en échec ; parent et sous-workflow écrivent le même job, le message peut nommer l'un ou l'autre). Un tick du planificateur a résolu la fiche de test bloquée `mufe83zs9t5g` (plan `porte_miroir` en échec, statut `premiere_prete`).
-- Limites connues : le délai de 1,5 min après une erreur photos peut devancer des plans encore en cours (acceptable tant qu'un plan dure moins d'environ 90 s) ; les exécutions d'erreur du parent et du sous-workflow se disputent le suffixe du message.
+- Limites connues : le délai de 6 min après une erreur photos est supérieur au timeout Fal (300 s), donc le chien de garde ne devance plus un plan encore en cours ; en revanche l'Error Trigger peut viser la fiche d'un autre utilisateur quand plusieurs fiches sont occupées ; les exécutions d'erreur du parent et du sous-workflow se disputent le suffixe du message.
 
 ### Fiche : feedback et journal
 

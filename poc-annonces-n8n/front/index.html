@@ -316,7 +316,7 @@ function filterByMoods(items, moods) {
   return items.filter(i => i.actif && (!moods.length || (i.moods || []).some(m => moods.includes(m))));
 }
 
-function journalLines(prev, cur) {
+function journalLines(prev, cur, opts) {
   const out = [], add = (text, kind) => out.push({ text, kind: kind || "info" });
   const same = !!prev && prev.job_id === cur.job_id;
   const was = same ? prev.statut : null, now = cur.statut;
@@ -334,7 +334,7 @@ function journalLines(prev, cur) {
     else if (now === "texte_pret") add("Annonce prête ✓", "ok");
     else if (now === "selection_en_cours") add("Recherche des inspirations dans la bibliothèque…");
     else if (now === "en_attente_validation") add("Inspirations proposées : à toi de choisir ✓", "ok");
-    else if (now === "generation_en_cours") add(ready === 0 ? "Génération de la photo portée (1/3)…" : ready === 1 ? "Génération des photos 2/3 et 3/3…" : ready >= 3 ? "Régénération d'une photo…" : "Nouvelle tentative…");
+    else if (now === "generation_en_cours") add(ready === 0 ? "Génération de la photo portée (1/3)…" : ready === 1 ? (was === "premiere_prete" && !(opts && opts.suiteAsked) ? "Nouvelle tentative de la photo portée…" : "Génération des photos 2/3 et 3/3…") : ready >= 3 ? "Régénération d'une photo…" : "Nouvelle tentative…");
     else if (now === "premiere_prete") add("Première photo prête : à toi de la valider.", "ok");
     else if (now === "galerie_prete") add("Les 3 photos sont prêtes ✓ (coût total " + Number(cur.cout_total || 0).toFixed(2) + " $)", "ok");
     else if (now === "budget_depasse") add("Plafond de coût atteint.", "err");
@@ -481,7 +481,7 @@ let pollFails = 0;
 // Brouillon de la fiche courante : jamais écrasé par les rafraîchissements de statut.
 let draft = null;
 function draftFor(j) {
-  if (!draft || draft.jobId !== j.job_id) draft = { jobId: j.job_id, initSel: false, sel: { vision: [], texte: [] }, selTouched: false, pending: [], moods: [], garment: null, garmentDirty: false, mannequin: null, mannequinDirty: false };
+  if (!draft || draft.jobId !== j.job_id) draft = { jobId: j.job_id, initSel: false, sel: { vision: [], texte: [] }, selTouched: false, pending: [], moods: [], garment: null, garmentDirty: false, mannequin: null, mannequinDirty: false, suiteAsked: false };
   const d = draft;
   if (!d.garmentDirty && j.garment_en != null) d.garment = j.garment_en;
   if (!d.mannequinDirty && j.mannequin_desc != null) d.mannequin = j.mannequin_desc;
@@ -598,7 +598,7 @@ async function refreshJob(id) {
   const prev = job;
   if (!prev || prev.job_id !== j.job_id) resetJournal(j.job_id);
   job = j; store.set("job", id);
-  for (const l of journalLines(prev && prev.job_id === j.job_id ? prev : null, j)) pushJournal(l.text, l.kind);
+  for (const l of journalLines(prev && prev.job_id === j.job_id ? prev : null, j, { suiteAsked: !!(draft && draft.suiteAsked) })) pushJournal(l.text, l.kind);
   if (j.statut === "texte_en_cours") armTextTimer(j.job_id);
   renderCreate();
   stopPoll();
@@ -847,9 +847,8 @@ function renderPhotos() {
         card.append(h("div", { class: "bar" }, h("label", { style: "margin:0;color:var(--ink)" }, keep, " Garder")));
       }
     } else {
-      const stage1 = job.plans[0].statut !== "pret" && job.plans.slice(1).every(x => x.statut === "en_attente");
       const msg = p.statut === "erreur" ? "Échec : " + cleanErr(p.erreur)
-        : idx > 0 && (stage1 || first) ? "Après validation de la première photo"
+        : idx > 0 && !(draft && draft.suiteAsked) ? "Après validation de la première photo"
         : st === "generation_en_cours" ? "En cours…" : "En attente";
       card.append(h("div", { class: "pair" }, origFig(), h("figure", {}, h("div", { class: "ph" }, msg))));
     }
@@ -892,7 +891,7 @@ function renderGlobal() {
 }
 $("#nextBtn").addEventListener("click", async () => {
   $("#nextBtn").disabled = true;
-  try { await api("POST", "/job/suite", { job_id: job.job_id }); await refreshJob(job.job_id); }
+  try { await api("POST", "/job/suite", { job_id: job.job_id }); if (draft) draft.suiteAsked = true; await refreshJob(job.job_id); }
   catch (e) { toast(e.message, 6000); }
   $("#nextBtn").disabled = false;
 });
@@ -905,9 +904,10 @@ $("#globalSend").addEventListener("click", async () => {
     $("#globalMsg").textContent = "Merci, annonce clôturée."; await refreshJob(job.job_id);
   } catch (e) { toast(e.message); }
 });
+function clearGlobalNote() { const c = $("#globalComment"), m = $("#globalMsg"); if (c) c.value = ""; if (m) m.textContent = ""; }
 $("#newBtn").addEventListener("click", () => {
   stopPoll(); clearTimeout(textTimer); job = null; currentJobId = null; draft = null; store.set("job", "");
-  globalNote = null; globalReasons = new Set(); resetJournal(null); renderCreate();
+  globalNote = null; globalReasons = new Set(); clearGlobalNote(); resetJournal(null); renderCreate();
 });
 
 let libLoading = false;
@@ -935,7 +935,7 @@ $("#createBtn").addEventListener("click", async () => {
   try {
     const r = await api("POST", "/job", fd);
     inputPhotos.set(r.job_id, URL.createObjectURL(files[0]));
-    draft = null; globalNote = null; globalReasons = new Set();
+    draft = null; globalNote = null; globalReasons = new Set(); clearGlobalNote();
     $("#createMsg").textContent = "";
     await refreshJob(r.job_id);
   } catch (e) { toast(e.message); $("#createMsg").textContent = e.message; }

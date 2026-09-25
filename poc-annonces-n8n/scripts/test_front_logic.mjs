@@ -64,7 +64,9 @@ test("journalLines : sélection puis génération en deux temps", () => {
   const cur = job({ statut: "premiere_prete", ...withPlans([{ statut: "pret", tentative: 1, cout_plan: 0.08 }]) });
   assert.deepEqual(L.journalLines(prev, cur).map(l => l.text), ["Photo « Porté » prête (1/3) ✓ 0.08 $", "Première photo prête : à toi de la valider."]);
   const s2 = job({ statut: "generation_en_cours", ...withPlans([{ statut: "pret", tentative: 1, cout_plan: 0.08 }]) });
-  assert.equal(L.journalLines(cur, s2)[0].text, "Génération des photos 2/3 et 3/3…");
+  assert.equal(L.journalLines(cur, s2, { suiteAsked: true })[0].text, "Génération des photos 2/3 et 3/3…");
+  assert.equal(L.journalLines(cur, s2)[0].text, "Nouvelle tentative de la photo portée…");
+  assert.equal(L.journalLines(cur, s2, { suiteAsked: false })[0].text, "Nouvelle tentative de la photo portée…");
 });
 
 test("journalLines : galerie prête, erreurs de plan et d'étape", () => {
