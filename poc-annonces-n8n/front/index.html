@@ -169,7 +169,29 @@
         </div>
       </div>
     </section>
-    <section class="card hidden" id="stepInspi"></section>
+    <section class="card hidden" id="stepInspi">
+      <div class="row"><h2 class="grow">Inspirations</h2><span class="status" id="inspiStatus"></span></div>
+      <div id="inspiError" class="bad"></div>
+      <div class="row hidden" id="retryStyleBar"><button class="btn" id="retryStyleBtn">Réessayer</button></div>
+      <div id="warnings" class="warn"></div>
+      <p class="muted">Filtre par ambiance (plusieurs possibles ; aucun = toute la bibliothèque). Choisis 1 ou 2 photos <b style="color:var(--accent)">principales</b> (vues par le générateur) et jusqu'à 3 <b style="color:var(--warn)">secondaires</b> (seule leur description est utilisée).</p>
+      <div class="chips" id="moodChips"></div>
+      <div class="row"><span class="muted grow" id="gridCount"></span><span class="muted" id="selCount"></span></div>
+      <div class="grid-inspi" id="styleGrid"></div>
+      <div class="row" style="margin-top:10px">
+        <label style="margin:0">Ajouter une inspiration à la bibliothèque et à cette annonce</label>
+        <input type="file" id="ficheUpFiles" accept="image/*" multiple style="width:auto">
+        <button class="btn ghost" id="ficheUpBtn">Envoyer</button><span class="muted" id="ficheUpMsg"></span>
+      </div>
+      <div class="row" style="margin-top:10px"><button class="linkbtn" id="mannToggle">Modifier la description du mannequin (photo portée)</button></div>
+      <div id="mannBox" class="hidden"><textarea id="mannequinDesc"></textarea></div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn ghost" id="rerollBtn">Revenir à la proposition</button>
+        <span class="grow"></span>
+        <span class="muted">≈ 0,08 $ pour la première photo</span>
+        <button class="btn" id="validateBtn">Générer la première photo</button>
+      </div>
+    </section>
     <section class="card hidden" id="stepPhotos"></section>
     <section class="card hidden" id="journalCard"><h3>Suivi</h3><div id="journal"></div></section>
   </div>
@@ -586,7 +608,116 @@ $("#retryTextBtn").addEventListener("click", async () => {
 $("#copyTitle").addEventListener("click", () => copy(job.titre, "Titre"));
 $("#copyDesc").addEventListener("click", () => copy(job.description, "Description"));
 $("#styleBtn").addEventListener("click", startStyle);
-function renderInspi() {}    // remplacée en Task 11
+function toggleInspi(fileId, kind) {
+  const sel = draft.sel; draft.selTouched = true;
+  const other = kind === "vision" ? "texte" : "vision";
+  const max = kind === "vision" ? MAX_VISION : MAX_TEXTE;
+  if (sel[kind].includes(fileId)) sel[kind] = sel[kind].filter(id => id !== fileId);
+  else if (sel[kind].length < max) { sel[other] = sel[other].filter(id => id !== fileId); sel[kind].push(fileId); }
+  else toast("Maximum " + max + " " + (kind === "vision" ? "principales" : "secondaires"));
+  renderInspi(draft);
+}
+
+function renderInspi(d) {
+  setStatus($("#inspiStatus"), job.statut);
+  const isErr = job.statut === "erreur";
+  $("#inspiError").textContent = isErr ? job.erreur : "";
+  $("#retryStyleBar").classList.toggle("hidden", !isErr);
+  const waiting = job.statut === "en_attente_validation";
+  $("#warnings").textContent = (job.avertissements || []).join(" — ");
+  for (const id of ["validateBtn", "rerollBtn"]) $("#" + id).disabled = !waiting;
+  if (!LIB && !libLoading) { libLoading = true; loadLibrary().finally(() => { libLoading = false; if (job && stepOf(job) === 2) renderInspi(draftFor(job)); }); }
+  if (document.activeElement !== $("#mannequinDesc") && $("#mannequinDesc").value !== (d.mannequin || "")) $("#mannequinDesc").value = d.mannequin || "";
+
+  const chips = $("#moodChips"); chips.innerHTML = "";
+  for (const m of CONFIG.moods) chips.append(moodChip(m, d.moods.includes(m.id), () => {
+    d.moods = d.moods.includes(m.id) ? d.moods.filter(x => x !== m.id) : [...d.moods, m.id]; renderInspi(d);
+  }));
+  const box = $("#styleGrid"); box.innerHTML = "";
+  if (!LIB) { box.append(h("span", { class: "muted" }, "Chargement de la bibliothèque…")); $("#gridCount").textContent = ""; }
+  else {
+    const sel = d.sel, chosen = id => sel.vision.includes(id) || sel.texte.includes(id);
+    const shown = filterByMoods(LIB, d.moods);
+    const list = [...shown.filter(i => chosen(i.drive_file_id)), ...shown.filter(i => !chosen(i.drive_file_id)).sort((a, b) => (b.utilisations || 0) - (a.utilisations || 0))];
+    for (const id of [...sel.vision, ...sel.texte]) if (!list.some(i => i.drive_file_id === id)) { const it = libById(id); if (it) list.unshift(it); }
+    $("#gridCount").textContent = list.length + " photo(s)" + (d.moods.length ? " · " + d.moods.map(m => m.replaceAll("_", " ")).join(" + ") : " · toute la bibliothèque");
+    for (const pid of d.pending) if (!libById(pid)) box.append(h("div", { class: "card item off" }, lazyImg(pid), h("div", { class: "muted" }, "indexation en cours")));
+    if (!list.length) box.append(h("span", { class: "muted" }, "Aucune photo pour ce filtre : retire une ambiance."));
+    for (const it of list) {
+      const id = it.drive_file_id, isV = sel.vision.includes(id), isT = sel.texte.includes(id);
+      const card = h("div", { class: "card item" + (isV ? " vision" : isT ? " texte" : "") });
+      const mchips = h("div", { class: "chips" }, (it.moods || []).map(m => h("span", { class: "chip static" + (d.moods.includes(m) ? " on" : "") }, m.replaceAll("_", " "))));
+      const descBox = h("div", { class: "hidden" });
+      const ta = h("textarea", {}); ta.value = it.description_en || "";
+      const save = h("button", { class: "btn ghost", style: "margin-top:4px", onclick: async () => {
+        try { const r = await api("POST", "/library/update", { drive_file_id: id, description_en: ta.value }); it.description_en = r.description_en; toast("Description enregistrée"); } catch (e) { toast(e.message); }
+      } }, "Enregistrer");
+      descBox.append(ta, save);
+      card.append(lazyImg(id), mchips,
+        h("div", { class: "muted" }, it.type_vetement + " · utilisée " + (it.utilisations || 0) + " fois"),
+        h("div", { class: "seg" },
+          h("button", { class: "v" + (isV ? " on" : ""), title: "Image envoyée au générateur (2 max)", onclick: () => toggleInspi(id, "vision") }, "Principale"),
+          h("button", { class: "t" + (isT ? " on" : ""), title: "Seule sa description est envoyée (3 max)", onclick: () => toggleInspi(id, "texte") }, "Secondaire")),
+        h("button", { class: "linkbtn", onclick: () => descBox.classList.toggle("hidden") }, "Modifier la description"),
+        descBox);
+      box.append(card);
+    }
+  }
+  $("#selCount").textContent = "Sélection : " + d.sel.vision.length + "/" + MAX_VISION + " principales · " + d.sel.texte.length + "/" + MAX_TEXTE + " secondaires";
+}
+
+$("#mannToggle").addEventListener("click", () => $("#mannBox").classList.toggle("hidden"));
+$("#mannequinDesc").addEventListener("input", () => { if (draft) { draft.mannequin = $("#mannequinDesc").value; draft.mannequinDirty = true; } });
+$("#retryStyleBtn").addEventListener("click", startStyle);
+$("#rerollBtn").addEventListener("click", startStyle);
+
+$("#validateBtn").addEventListener("click", async () => {
+  const d = draft; if (!d || !job) return;
+  const ids = [...d.sel.vision, ...d.sel.texte];
+  if (!ids.length && !confirm("Aucune inspiration choisie. Générer quand même ?")) return;
+  const mood = moodUnion(LIB || [], ids).join(", ");
+  $("#validateBtn").disabled = true;
+  try {
+    await api("POST", "/job/valider", {
+      job_id: job.job_id, mood, decor_refs: d.sel.vision, inspi_texte: d.sel.texte,
+      garment_en: d.garment != null ? d.garment : (job.garment_en || ""), mannequin_desc: d.mannequin != null ? d.mannequin : (job.mannequin_desc || ""),
+      texte_visible: !!job.texte_visible, plans: ["porte_miroir"]
+    });
+    await refreshJob(job.job_id);
+  } catch (e) { toast(e.message, 6000); }
+  $("#validateBtn").disabled = false;
+});
+
+$("#ficheUpBtn").addEventListener("click", async () => {
+  const files = [...$("#ficheUpFiles").files]; if (!files.length || !job) return toast("Choisis au moins une photo");
+  const jobAtStart = job.job_id;
+  const fd = new FormData(); fd.append("genre", job.genre); fd.append("type_vetement", job.type_vetement);
+  files.forEach((f, i) => fd.append("photo" + i, f, f.name));
+  $("#ficheUpBtn").disabled = true; $("#ficheUpMsg").textContent = "Envoi…";
+  try {
+    const r = await api("POST", "/library/upload", fd);
+    const ids = r.drive_file_ids || [];
+    if (currentJobId !== jobAtStart || !draft || draft.jobId !== jobAtStart) { $("#ficheUpMsg").textContent = ""; $("#ficheUpBtn").disabled = false; return; }  // fiche changée pendant l'envoi
+    const d = draft;
+    d.pending.push(...ids.filter(x => !d.pending.includes(x)));
+    const adoptKnown = () => {   // n'entrent dans la sélection que les ids déjà connus de la bibliothèque
+      if (!draft || draft.jobId !== jobAtStart) return;
+      for (const id of [...d.pending]) {
+        if (!libById(id)) continue;
+        d.pending = d.pending.filter(x => x !== id);
+        if (d.sel.vision.includes(id) || d.sel.texte.includes(id)) continue;
+        if (d.sel.vision.length < MAX_VISION) d.sel.vision.push(id);
+        else if (d.sel.texte.length < MAX_TEXTE) d.sel.texte.push(id);
+        d.selTouched = true;
+      }
+    };
+    $("#ficheUpMsg").textContent = ids.length + " photo(s) envoyée(s) ; indexation en cours (~5 s par photo), la grille se recharge dans 20 s.";
+    $("#ficheUpFiles").value = ""; renderInspi(draftFor(job));
+    await loadLibrary(); adoptKnown(); if (job && job.job_id === jobAtStart && stepOf(job) === 2) renderInspi(draftFor(job));
+    setTimeout(async () => { await loadLibrary(); adoptKnown(); if (job && job.job_id === jobAtStart && stepOf(job) === 2) renderInspi(draftFor(job)); }, 20000);
+  } catch (e) { $("#ficheUpMsg").textContent = e.message; toast(e.message); }
+  $("#ficheUpBtn").disabled = false;
+});
 function renderPhotos() {}   // remplacée en Task 12
 $("#newBtn").addEventListener("click", () => {
   stopPoll(); clearTimeout(textTimer); job = null; currentJobId = null; draft = null; store.set("job", "");
@@ -652,15 +783,6 @@ function inspiInfo(id) {
   const it = libById(id); if (it) return it;
   const r = [...(job.decor_refs || []), ...(job.inspi_texte || [])].find(x => x.file_id === id);
   return r ? { drive_file_id: id, nom_fichier: r.nom_fichier, moods: r.moods || [], description_en: r.description_en || "", utilisations: 0, actif: true } : { drive_file_id: id, nom_fichier: id, moods: [], description_en: "", utilisations: 0, actif: true };
-}
-function toggleInspi(fileId, kind) {
-  const sel = draft.sel; draft.selTouched = true;
-  const other = kind === "vision" ? "texte" : "vision";
-  const max = kind === "vision" ? MAX_VISION : MAX_TEXTE;
-  if (sel[kind].includes(fileId)) sel[kind] = sel[kind].filter(id => id !== fileId);
-  else if (sel[kind].length < max) { sel[other] = sel[other].filter(id => id !== fileId); sel[kind].push(fileId); }
-  else toast("Maximum " + max + " en " + (kind === "vision" ? "vision" : "texte"));
-  renderStyleGrid();
 }
 function useAsInspi(fileId) {
   const sel = draft.sel; draft.selTouched = true;
