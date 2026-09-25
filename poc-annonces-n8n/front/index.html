@@ -144,7 +144,31 @@
       <label style="color:var(--ink)"><input type="checkbox" id="texteVisible"> Le vêtement porte du texte ou un logo lisible <span class="muted">(la photo portée sera prise sans miroir, pour ne pas l'inverser)</span></label>
       <div class="row" style="margin-top:14px"><button class="btn" id="createBtn">Créer l'annonce</button><span class="muted" id="createMsg"></span></div>
     </section>
-    <section class="card hidden" id="stepText"></section>
+    <section class="card hidden" id="stepText">
+      <div class="row"><h2 class="grow">Annonce</h2><span class="status" id="jobStatus"></span></div>
+      <div id="jobError" class="bad"></div>
+      <div class="row hidden" id="retryTextBar"><button class="btn" id="retryTextBtn">Réessayer</button></div>
+      <div id="textBlock" class="hidden">
+        <h3 id="titre"></h3>
+        <p class="desc" id="desc"></p>
+        <div class="row">
+          <button class="btn ghost" id="copyTitle">Copier le titre</button>
+          <button class="btn ghost" id="copyDesc">Copier la description</button>
+        </div>
+        <label>Un changement à demander ?</label>
+        <textarea id="feedbackText" placeholder="Ex. : c'est de la viscose, ton plus sobre, mentionne la coupe"></textarea>
+        <div class="row" style="margin-top:8px">
+          <button class="btn ghost" id="refineBtn">Mettre à jour le texte</button>
+          <button class="linkbtn" id="garmentToggle">Modifier la description du vêtement pour les photos</button>
+          <span class="grow"></span>
+          <button class="btn" id="styleBtn">Choisir les inspirations →</button>
+        </div>
+        <div id="garmentBox" class="hidden">
+          <label>Description du vêtement pour les photos <span class="muted">(anglais, modifiable)</span></label>
+          <textarea id="garmentEn"></textarea>
+        </div>
+      </div>
+    </section>
     <section class="card hidden" id="stepInspi"></section>
     <section class="card hidden" id="stepPhotos"></section>
     <section class="card hidden" id="journalCard"><h3>Suivi</h3><div id="journal"></div></section>
@@ -537,7 +561,31 @@ function renderCreate() {
   if (step === 1) renderText(d); else if (step === 2) renderInspi(d); else renderPhotos(d);
   renderJournal();
 }
-function renderText() {}     // remplacée en Task 10
+function renderText(d) {
+  setStatus($("#jobStatus"), job.statut);
+  const isErr = job.statut === "erreur";
+  $("#jobError").textContent = isErr ? job.erreur : "";
+  $("#retryTextBar").classList.toggle("hidden", !isErr);
+  const ready = !!job.titre;
+  $("#textBlock").classList.toggle("hidden", !ready);
+  if (!ready) return;
+  $("#titre").textContent = job.titre; $("#desc").textContent = job.description;
+  const busy = BUSY.includes(job.statut);
+  for (const id of ["refineBtn", "styleBtn"]) $("#" + id).disabled = busy;
+  if (document.activeElement !== $("#garmentEn") && $("#garmentEn").value !== (d.garment || "")) $("#garmentEn").value = d.garment || "";
+}
+$("#garmentEn").addEventListener("input", () => { if (draft) { draft.garment = $("#garmentEn").value; draft.garmentDirty = true; } });
+$("#garmentToggle").addEventListener("click", () => $("#garmentBox").classList.toggle("hidden"));
+$("#refineBtn").addEventListener("click", async () => {
+  const msg = $("#feedbackText").value.trim(); if (!msg) return toast("Écris ce que tu veux changer");
+  try { await api("POST", "/job/texte", { job_id: job.job_id, message: msg }); $("#feedbackText").value = ""; await refreshJob(job.job_id); } catch (e) { toast(e.message); }
+});
+$("#retryTextBtn").addEventListener("click", async () => {
+  try { await api("POST", "/job/texte", { job_id: job.job_id, retry: true }); await refreshJob(job.job_id); } catch (e) { toast(e.message); }
+});
+$("#copyTitle").addEventListener("click", () => copy(job.titre, "Titre"));
+$("#copyDesc").addEventListener("click", () => copy(job.description, "Description"));
+$("#styleBtn").addEventListener("click", startStyle);
 function renderInspi() {}    // remplacée en Task 11
 function renderPhotos() {}   // remplacée en Task 12
 $("#newBtn").addEventListener("click", () => {
@@ -802,7 +850,7 @@ $("#createBtn").addEventListener("click", async () => {
   if (!$("#type").value.trim()) return toast("Indique le type de vêtement");
   const fd = new FormData();
   fd.append("user", $("#userSel").value); fd.append("genre", $("#genre").value); fd.append("type_vetement", $("#type").value.trim());
-  fd.append("moods_autorises", JSON.stringify(moodIds()));  // le mood se choisit à l'étape style
+  fd.append("moods_autorises", JSON.stringify(moodIds()));
   for (const k of ["marque", "taille", "mesures", "etat", "prix"]) fd.append(k, $("#" + k).value.trim());
   fd.append("texte_visible", $("#texteVisible").checked ? "true" : "false");
   files.forEach((f, i) => fd.append("photo" + i, f, f.name));
@@ -819,9 +867,8 @@ $("#createBtn").addEventListener("click", async () => {
 async function startStyle() {
   try {
     await api("POST", "/job/style", { job_id: job.job_id, moods_autorises: moodIds() });
-    if (draft && draft.jobId === job.job_id) { draft.initSel = false; draft.reviewOpen = false; }  // repartir de la proposition
+    if (draft && draft.jobId === job.job_id) draft.initSel = false;   // repartir de la proposition
     await refreshJob(job.job_id);
-    if (job.statut === "en_attente_validation") $("#styleBlock").scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (e) { toast(e.message); }
 }
 const copy = async (text, what) => { try { await navigator.clipboard.writeText(text); toast(what + " copié"); } catch (e) { toast("Copie impossible"); } };
