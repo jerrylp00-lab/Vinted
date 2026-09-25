@@ -52,8 +52,8 @@
   .plan .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 760px; }
   .plan .pair figure { margin: 0; }
   .plan .pair figcaption { font-size: 12px; color: var(--muted); margin-top: 4px; }
-  .plan img.shot, .plan img.orig { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); background: var(--chip); display: block; }
-  .plan .ph { width: 100%; aspect-ratio: 3/4; border-radius: 10px; background: var(--chip); display: grid; place-items: center; color: var(--muted); font-size: 13px; text-align: center; padding: 10px; }
+  .plan img.shot, .plan img.orig, .hist-shots img.shot { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); background: var(--chip); display: block; }
+  .plan .ph, .hist-shots .ph { width: 100%; aspect-ratio: 3/4; border-radius: 10px; background: var(--chip); display: grid; place-items: center; color: var(--muted); font-size: 13px; text-align: center; padding: 10px; }
   .grid-inspi { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-top: 8px; }
   .grid-inspi .item { padding: 8px; margin: 0; border: 2px solid var(--line); }
   .grid-inspi .item.vision { border-color: var(--accent); }
@@ -562,7 +562,7 @@ function renderHistory() {
       try {
         const d = await api("GET", "/job-status?id=" + encodeURIComponent(j.job_id));
         detail.innerHTML = "";
-        const shots = h("div", { class: "plans", style: "grid-template-columns:repeat(auto-fit,minmax(200px,1fr))" });
+        const shots = h("div", { class: "plans hist-shots", style: "grid-template-columns:repeat(auto-fit,minmax(200px,1fr))" });
         for (const p of d.plans) {
           const fig = h("figure", { style: "margin:0" });
           if (p.statut === "pret") { const img = h("img", { class: "shot", alt: "" }); gradedUrl(p.drive_file_id).then(u => { img.src = u; }).catch(() => { img.alt = "image indisponible"; }); fig.append(img); }
@@ -983,8 +983,14 @@ function renderLibrary() {
       try { const r = await api("POST", "/library/update", { drive_file_id: it.drive_file_id, actif: active.checked }); it.actif = r.actif; card.classList.toggle("off", !it.actif); }
       catch (e) { toast(e.message); active.checked = !active.checked; }
     });
+    const descBox = h("div", { class: "hidden" });
+    const ta = h("textarea", {}); ta.value = it.description_en || "";
+    descBox.append(ta, h("button", { class: "btn ghost", style: "margin-top:4px", onclick: async () => {
+      try { const r = await api("POST", "/library/update", { drive_file_id: it.drive_file_id, description_en: ta.value }); it.description_en = r.description_en; toast("Description enregistrée"); } catch (e) { toast(e.message); }
+    } }, "Enregistrer"));
     card.append(lazyImg(it.drive_file_id), h("div", { class: "muted", style: "margin-top:6px" }, it.genre + " · " + it.type_vetement), chips,
-      h("div", { class: "muted", title: it.description }, it.tags.join(", ")), h("label", { style: "color:var(--ink)" }, active, " active"));
+      h("div", { class: "muted", title: it.description }, it.tags.join(", ")),
+      h("button", { class: "linkbtn", onclick: () => descBox.classList.toggle("hidden") }, "Modifier la description"), descBox, h("label", { style: "color:var(--ink)" }, active, " active"));
     box.append(card);
   }
 }
