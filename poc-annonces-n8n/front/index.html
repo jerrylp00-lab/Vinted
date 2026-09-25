@@ -524,7 +524,60 @@ function showTab(name) {
   if (name === "historique") loadHistory();
 }
 document.querySelectorAll("#tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
-function loadHistory() {}    // remplacée en Task 13
+// ---------- historique (consultation seule) ----------
+let HIST = null, histDays = 30;
+async function loadHistory() {
+  try { HIST = (await api("GET", "/jobs")).jobs; } catch (e) { return toast(e.message); }
+  renderHistory();
+}
+const money = v => Number(v || 0).toFixed(3) + " $";
+function renderHistory() {
+  const root = $("#tab-historique"); root.innerHTML = "";
+  if (!HIST) return;
+  const s = summarize(HIST, histDays, Date.now());
+  const sel = h("select", { style: "width:auto" }, [[7, "7 derniers jours"], [30, "30 derniers jours"], [0, "Tout"]].map(([v, l]) => h("option", { value: v, ...(v === histDays ? { selected: "" } : {}) }, l)));
+  sel.addEventListener("change", () => { histDays = Number(sel.value); renderHistory(); });
+  const stat = (k, v) => h("div", {}, h("div", { class: "k" }, k), h("div", { class: "v" }, v));
+  root.append(h("section", { class: "card" },
+    h("div", { class: "row" }, h("h2", { class: "grow" }, "Historique"), sel),
+    h("div", { class: "hist-totals" }, stat("Annonces", String(s.fiches)), stat("Images générées", String(s.images) + (s.regenerations ? " (dont " + s.regenerations + " refaites)" : "")),
+      stat("Coût du texte", money(s.cout_texte)), stat("Coût des images", money(s.cout_images)), stat("Coût total", money(s.cout_total)),
+      stat("Moyenne par annonce", s.fiches ? money(s.cout_total / s.fiches) : "—")),
+    h("p", { class: "muted", style: "margin-top:8px" }, "Coût des images = unités facturées par Fal × tarif de config_image ; coût du texte = retour réel d'OpenRouter.")));
+  if (!s.list.length) root.append(h("p", { class: "muted" }, "Aucune annonce sur cette période."));
+  for (const j of s.list) {
+    const detail = h("div", { class: "hidden", style: "margin-top:12px;grid-column:1 / -1" });
+    const row = h("div", { class: "card" });
+    const head = h("div", { class: "hist-row" },
+      j.cover_file_id ? lazyImg(j.cover_file_id) : h("div", { class: "ph", style: "width:64px;height:84px;aspect-ratio:auto;font-size:11px" }, "—"),
+      h("div", {}, h("strong", {}, j.titre || "(annonce sans titre)"),
+        h("div", { class: "muted" }, new Date(j.created_at).toLocaleString("fr-FR") + " · " + j.user + " · " + [j.genre, j.type_vetement].filter(Boolean).join(" ")),
+        h("div", { class: "muted" }, (STATUS_LABELS[j.statut] || j.statut) + " · " + j.nb_images + " image(s)" + (j.nb_regenerations ? " dont " + j.nb_regenerations + " refaite(s)" : "") + (j.note_globale ? " · " + j.note_globale : ""))),
+      h("div", { style: "text-align:right" }, h("div", { class: "v", style: "font-size:16px;font-weight:650" }, money(j.cout_total)), h("div", { class: "muted" }, "texte " + money(j.cout_texte) + " · images " + money(j.cout_images))));
+    let loaded = false;
+    head.addEventListener("click", async () => {
+      detail.classList.toggle("hidden");
+      if (loaded || detail.classList.contains("hidden")) return; loaded = true;
+      detail.append(h("span", { class: "muted" }, "Chargement…"));
+      try {
+        const d = await api("GET", "/job-status?id=" + encodeURIComponent(j.job_id));
+        detail.innerHTML = "";
+        const shots = h("div", { class: "plans", style: "grid-template-columns:repeat(auto-fit,minmax(200px,1fr))" });
+        for (const p of d.plans) {
+          const fig = h("figure", { style: "margin:0" });
+          if (p.statut === "pret") { const img = h("img", { class: "shot", alt: "" }); gradedUrl(p.drive_file_id).then(u => { img.src = u; }).catch(() => { img.alt = "image indisponible"; }); fig.append(img); }
+          else fig.append(h("div", { class: "ph" }, p.statut === "erreur" ? "Échec : " + cleanErr(p.erreur) : "Pas générée"));
+          fig.append(h("figcaption", { class: "muted" }, (PLAN_LABELS[p.plan] || p.plan) + (p.statut === "pret" ? " · " + p.fournisseur + " · " + money(p.cout_plan) + (p.tentatives_total > 1 ? " · " + p.tentatives_total + " tentatives" : "") : "")));
+          shots.append(fig);
+        }
+        detail.append(h("h3", {}, d.titre || ""), h("p", { class: "desc" }, d.description || ""),
+          h("div", { class: "row" }, h("button", { class: "btn ghost", onclick: () => copy(d.titre, "Titre") }, "Copier le titre"), h("button", { class: "btn ghost", onclick: () => copy(d.description, "Description") }, "Copier la description")),
+          ...(d.erreur ? [h("p", { class: "bad" }, d.erreur)] : []), shots);
+      } catch (e) { detail.innerHTML = ""; detail.append(h("span", { class: "bad" }, e.message)); loaded = false; }
+    });
+    row.append(head, detail); root.append(row);
+  }
+}
 
 // Réglages : chargement à l'ouverture de chaque section
 $("#dProfil").addEventListener("toggle", () => { if ($("#dProfil").open) loadProfile(); });
