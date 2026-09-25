@@ -626,7 +626,7 @@ function renderInspi(d) {
   const waiting = job.statut === "en_attente_validation";
   $("#warnings").textContent = (job.avertissements || []).join(" — ");
   for (const id of ["validateBtn", "rerollBtn"]) $("#" + id).disabled = !waiting;
-  if (!LIB && !libLoading) { libLoading = true; loadLibrary().finally(() => { libLoading = false; if (job && stepOf(job) === 2) renderInspi(draftFor(job)); }); }
+  if (!LIB && !libLoading && !libLoadFailed) { libLoading = true; loadLibrary().finally(() => { libLoading = false; if (job && stepOf(job) === 2) renderInspi(draftFor(job)); }); }
   if (document.activeElement !== $("#mannequinDesc") && $("#mannequinDesc").value !== (d.mannequin || "")) $("#mannequinDesc").value = d.mannequin || "";
 
   const chips = $("#moodChips"); chips.innerHTML = "";
@@ -634,7 +634,13 @@ function renderInspi(d) {
     d.moods = d.moods.includes(m.id) ? d.moods.filter(x => x !== m.id) : [...d.moods, m.id]; renderInspi(d);
   }));
   const box = $("#styleGrid"); box.innerHTML = "";
-  if (!LIB) { box.append(h("span", { class: "muted" }, "Chargement de la bibliothèque…")); $("#gridCount").textContent = ""; }
+  if (!LIB && libLoadFailed) {
+    box.append(h("span", { class: "muted" }, "Bibliothèque indisponible. "), h("button", { class: "btn ghost", onclick: async () => {
+      libLoadFailed = false; await loadLibrary(); if (job && stepOf(job) === 2) renderInspi(draftFor(job));
+    } }, "Réessayer"));
+    $("#gridCount").textContent = "";
+  }
+  else if (!LIB) { box.append(h("span", { class: "muted" }, "Chargement de la bibliothèque…")); $("#gridCount").textContent = ""; }
   else {
     const sel = d.sel, chosen = id => sel.vision.includes(id) || sel.texte.includes(id);
     const shown = filterByMoods(LIB, d.moods);
@@ -684,8 +690,7 @@ $("#validateBtn").addEventListener("click", async () => {
       texte_visible: !!job.texte_visible, plans: ["porte_miroir"]
     });
     await refreshJob(job.job_id);
-  } catch (e) { toast(e.message, 6000); }
-  $("#validateBtn").disabled = false;
+  } catch (e) { toast(e.message, 6000); $("#validateBtn").disabled = false; }
 });
 
 $("#ficheUpBtn").addEventListener("click", async () => {
@@ -766,11 +771,12 @@ function renderFiche() {
   $("#styleBlock").classList.toggle("hidden", !inStyle);
   if (inStyle) {
     $("#warnings").textContent = (job.avertissements || []).join(" — ");
-    if (!LIB && !libLoading) { libLoading = true; loadLibrary().finally(() => { libLoading = false; if (job && job.statut === "en_attente_validation") renderStyleGrid(); }); }
+    if (!LIB && !libLoading && !libLoadFailed) { libLoading = true; loadLibrary().finally(() => { libLoading = false; if (job && job.statut === "en_attente_validation") renderStyleGrid(); }); }
     renderStyleGrid();
   }
 }
 let libLoading = false;
+let libLoadFailed = false;
 
 // garment_en : un seul brouillon, affiché dans deux textareas (texte et relecture)
 function syncGarment(d) {
@@ -998,7 +1004,8 @@ const copy = async (text, what) => { try { await navigator.clipboard.writeText(t
 // ---------- bibliothèque ----------
 let LIB = null;
 async function loadLibrary() {
-  try { LIB = (await api("GET", "/library")).items; } catch (e) { return toast(e.message); }
+  if (!CONFIG) return;
+  try { LIB = (await api("GET", "/library")).items; libLoadFailed = false; } catch (e) { libLoadFailed = true; return toast(e.message); }
   const genres = [...new Set(LIB.map(i => i.genre))].sort(), types = [...new Set(LIB.map(i => i.type_vetement))].sort();
   const keep = { g: $("#fGenre").value, t: $("#fType").value, m: $("#fMood").value };
   fillSelect($("#fGenre"), genres, "Tous"); fillSelect($("#fType"), types, "Tous");
@@ -1031,7 +1038,7 @@ function renderLibrary() {
   }
 }
 for (const id of ["fGenre", "fType", "fMood", "fActive"]) $("#" + id).addEventListener("change", () => LIB && renderLibrary());
-$("#libReload").addEventListener("click", loadLibrary);
+$("#libReload").addEventListener("click", () => { libLoadFailed = false; loadLibrary(); });
 $("#upBtn").addEventListener("click", async () => {
   const files = [...$("#upFiles").files]; const type = $("#upType").value.trim();
   if (!files.length || !type) return toast("Choisis un type et au moins une photo");
