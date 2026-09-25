@@ -288,8 +288,71 @@
 
 <script>
 "use strict";
-const DEFAULT_BASE = "https://178-105-102-54.sslip.io/webhook/vfn";
+// <logic>
+const PLAN_ORDER = ["porte_miroir", "cintre", "detail"];
 const PLAN_LABELS = { porte_miroir: "Porté", cintre: "Sur cintre", detail: "Détail" };
+const cleanErr = m => String(m || "").replace(/^(Texte|Style|Photos) : /, "");
+
+function stepOf(j) {
+  if (!j) return 1;
+  const s = j.statut;
+  if (s === "texte_en_cours" || s === "texte_pret") return 1;
+  if (s === "selection_en_cours" || s === "en_attente_validation") return 2;
+  if (["generation_en_cours", "premiere_prete", "galerie_prete", "budget_depasse", "termine"].includes(s)) return 3;
+  if (s === "erreur") return /^Style/.test(j.erreur || "") && j.titre ? 2 : 1;
+  return 1;
+}
+
+function moodUnion(items, selectedIds) {
+  const count = new Map();
+  for (const id of selectedIds) {
+    const it = items.find(i => i.drive_file_id === id);
+    for (const m of (it && it.moods) || []) count.set(m, (count.get(m) || 0) + 1);
+  }
+  return [...count.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(e => e[0]);
+}
+
+function filterByMoods(items, moods) {
+  return items.filter(i => i.actif && (!moods.length || (i.moods || []).some(m => moods.includes(m))));
+}
+
+function journalLines(prev, cur) {
+  const out = [], add = (text, kind) => out.push({ text, kind: kind || "info" });
+  const same = !!prev && prev.job_id === cur.job_id;
+  const was = same ? prev.statut : null, now = cur.statut;
+  const isReady = p => p.statut === "pret";
+  for (const p of cur.plans || []) {
+    if (!same) break;                       // au rechargement d'une fiche on ne rejoue pas chaque photo
+    const before = (prev.plans || []).find(x => x.plan === p.plan) || {};
+    const n = PLAN_ORDER.indexOf(p.plan) + 1;
+    if (isReady(p) && !(isReady(before) && before.tentative === p.tentative)) add("Photo « " + PLAN_LABELS[p.plan] + " » prête (" + n + "/3) ✓ " + Number(p.cout_plan || 0).toFixed(2) + " $", "ok");
+    else if (p.statut === "erreur" && !(before.statut === "erreur" && before.erreur === p.erreur)) add("⚠ Photo « " + PLAN_LABELS[p.plan] + " » : " + cleanErr(p.erreur), "err");
+  }
+  if (now !== was) {
+    const ready = (cur.plans || []).filter(isReady).length;
+    if (now === "texte_en_cours") add("Lecture des photos…");
+    else if (now === "texte_pret") add("Annonce prête ✓", "ok");
+    else if (now === "selection_en_cours") add("Recherche des inspirations dans la bibliothèque…");
+    else if (now === "en_attente_validation") add("Inspirations proposées : à toi de choisir ✓", "ok");
+    else if (now === "generation_en_cours") add(ready === 0 ? "Génération de la photo portée (1/3)…" : ready === 1 ? "Génération des photos 2/3 et 3/3…" : ready >= 3 ? "Régénération d'une photo…" : "Nouvelle tentative…");
+    else if (now === "premiere_prete") add("Première photo prête : à toi de la valider.", "ok");
+    else if (now === "galerie_prete") add("Les 3 photos sont prêtes ✓ (coût total " + Number(cur.cout_total || 0).toFixed(2) + " $)", "ok");
+    else if (now === "budget_depasse") add("Plafond de coût atteint.", "err");
+    else if (now === "termine") add("Fiche clôturée. Merci !", "ok");
+  }
+  if (cur.erreur && (!same || prev.erreur !== cur.erreur)) add("⚠ " + cur.erreur, "err");
+  return out;
+}
+
+function summarize(jobs, days, now) {
+  const since = days ? now - days * 86400000 : 0;
+  const list = jobs.filter(j => new Date(j.created_at).getTime() >= since);
+  const sum = k => list.reduce((a, j) => a + Number(j[k] || 0), 0);
+  return { fiches: list.length, images: sum("nb_images"), regenerations: sum("nb_regenerations"),
+    cout_texte: sum("cout_texte"), cout_images: sum("cout_images"), cout_total: sum("cout_total"), list };
+}
+// </logic>
+const DEFAULT_BASE = "https://178-105-102-54.sslip.io/webhook/vfn";
 // Étalonnage appliqué côté front aux images générées (affichage et téléchargement). À régler à l'œil.
 const GRADE = {
   saturate: 0.82, sepia: 0.10, contrast: 0.97, brightness: 1.02,  // filtres CSS, appliqués dans cet ordre
