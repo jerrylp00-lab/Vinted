@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fiches Vinted</title>
+<title>Annonces Vinted</title>
 <style>
   :root {
     --bg: #f6f5f2; --card: #ffffff; --ink: #1d1d1b; --muted: #6b6a66; --line: #e4e2dc;
@@ -67,8 +67,6 @@
   .linkbtn { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-size: 12.5px; cursor: pointer; text-decoration: underline; margin-top: 6px; }
   .review { margin-top: 16px; padding: 14px; border: 2px solid var(--accent); border-radius: 12px; }
   .review .thumbs img { height: 150px; }
-  .review ol { padding-left: 20px; margin: 6px 0; }
-  .review li { margin-bottom: 6px; font-size: 13px; }
   .plan .bar { display: flex; gap: 8px; align-items: center; margin: 8px 0 4px; flex-wrap: wrap; }
   .thumb-btn { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 3px 9px; cursor: pointer; font-size: 16px; }
   .thumb-btn.on { border-color: var(--accent); background: var(--chip); }
@@ -103,7 +101,7 @@
 </head>
 <body>
 <header>
-  <h1>🧥 Fiches Vinted</h1>
+  <h1>🧥 Annonces Vinted</h1>
   <nav id="tabs">
     <button data-tab="creer" class="on">Créer</button>
     <button data-tab="historique">Historique</button>
@@ -239,7 +237,7 @@
       <summary>Profil de rédaction</summary>
       <p class="muted">Profil de <b id="profUser"></b></p>
       <section class="card">
-        <p class="muted">Ces préférences sont ajoutées au prompt qui rédige tes descriptions (courtes puces, environ 300 tokens maximum). Les descriptions que tu notes 👍 servent en plus d'exemples de style (2 au plus, du même genre et type) pour les prochaines fiches.</p>
+        <p class="muted">Ces préférences sont ajoutées au prompt qui rédige tes descriptions (courtes puces, environ 300 tokens maximum). Les annonces que tu notes 👍 à la fin servent d'exemples de style (2 au plus, du même genre et type) pour les prochaines annonces.</p>
         <textarea id="profText" style="min-height:150px" placeholder="- Toujours mentionner la matière et la taille&#10;- Ton sobre, pas de superlatifs"></textarea>
         <div class="row"><span class="muted" id="profCount"></span><span class="grow"></span>
           <button class="btn ghost" id="profPropose">Proposer une mise à jour depuis mes retours</button>
@@ -340,7 +338,7 @@ function journalLines(prev, cur) {
     else if (now === "premiere_prete") add("Première photo prête : à toi de la valider.", "ok");
     else if (now === "galerie_prete") add("Les 3 photos sont prêtes ✓ (coût total " + Number(cur.cout_total || 0).toFixed(2) + " $)", "ok");
     else if (now === "budget_depasse") add("Plafond de coût atteint.", "err");
-    else if (now === "termine") add("Fiche clôturée. Merci !", "ok");
+    else if (now === "termine") add("Annonce clôturée. Merci !", "ok");
   }
   if (cur.erreur && (!same || prev.erreur !== cur.erreur)) add("⚠ " + cur.erreur, "err");
   return out;
@@ -800,7 +798,7 @@ $("#ficheUpBtn").addEventListener("click", async () => {
   $("#ficheUpBtn").disabled = false;
 });
 const planState = new Map();   // job_id|plan → { pastilles:Set, fb:string, raw:bool } : survit aux re-rendus
-const inputPhotos = new Map(); // job_id → URL locale de la 1re photo d'entrée (fiches créées dans cette session)
+const inputPhotos = new Map(); // job_id → URL locale de la 1re photo d'entrée (annonces créées dans cette session)
 let globalNote = null; let globalReasons = new Set();
 
 function origFigure(url) {
