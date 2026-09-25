@@ -81,30 +81,51 @@
   dialog::backdrop { background: rgba(0,0,0,.4); }
   .hidden { display: none !important; }
   small.k { font-family: ui-monospace, monospace; }
+  .stepper { display: flex; gap: 8px; margin: 0 0 16px; flex-wrap: wrap; }
+  .step { flex: 1; min-width: 140px; display: flex; gap: 8px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--muted); }
+  .step .n { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--chip); font-size: 12px; font-weight: 600; }
+  .step.active { color: var(--ink); border-color: var(--accent); font-weight: 600; }
+  .step.active .n { background: var(--accent); color: var(--accent-ink); }
+  .step.done { color: var(--ink); }
+  .step.done .n { background: var(--good); color: #fff; }
+  #journal { font: 12.5px/1.6 ui-monospace, monospace; color: var(--muted); max-height: 190px; overflow: auto; }
+  #journal .l.err { color: var(--bad); }
+  #journal .l.ok { color: var(--muted); }
+  #journal .l:last-child { color: var(--ink); }
+  details.card > summary { cursor: pointer; font-weight: 600; font-size: 16px; }
+  details.card[open] > summary { margin-bottom: 12px; }
+  .hist-row { display: grid; grid-template-columns: 64px 1fr auto; gap: 12px; align-items: center; cursor: pointer; }
+  .hist-row img { width: 64px; height: 84px; object-fit: cover; border-radius: 8px; background: var(--chip); }
+  .hist-totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+  .hist-totals .k { font-size: 12px; color: var(--muted); }
+  .hist-totals .v { font-size: 20px; font-weight: 650; }
 </style>
 </head>
 <body>
 <header>
   <h1>🧥 Fiches Vinted</h1>
   <nav id="tabs">
-    <button data-tab="fiche" class="on">Nouvelle fiche</button>
-    <button data-tab="galerie">Galerie</button>
-    <button data-tab="biblio">Bibliothèque</button>
-    <button data-tab="profil">Profil</button>
-    <button data-tab="prompts">Prompts</button>
+    <button data-tab="creer" class="on">Créer</button>
+    <button data-tab="historique">Historique</button>
+    <button data-tab="reglages">Réglages</button>
   </nav>
   <span class="grow"></span>
   <label style="margin:0" class="muted">Utilisateur
     <select id="userSel" style="width:auto;display:inline-block"></select>
   </label>
-  <button class="btn ghost" id="settingsBtn">Réglages</button>
 </header>
 
 <main>
-  <!-- ========== NOUVELLE FICHE ========== -->
-  <div id="tab-fiche">
-    <section class="card" id="formCard">
-      <h2>1. Photos du vêtement</h2>
+  <!-- ========== CRÉER ========== -->
+  <div id="tab-creer">
+    <div class="stepper" id="stepper">
+      <div class="step active" data-step="1"><span class="n">1</span> Annonce</div>
+      <div class="step" data-step="2"><span class="n">2</span> Inspirations</div>
+      <div class="step" data-step="3"><span class="n">3</span> Photos de l'annonce</div>
+    </div>
+    <div class="row hidden" id="newBar" style="margin-bottom:12px"><button class="btn ghost" id="newBtn">＋ Nouvelle annonce</button><span class="muted" id="jobRef"></span></div>
+    <section class="card" id="stepForm">
+      <h2>Annonce</h2>
       <input type="file" id="photos" accept="image/*" multiple>
       <div class="thumbs" id="photoPreview"></div>
       <div class="row">
@@ -121,170 +142,80 @@
         <div class="grow"><label>État</label><input type="text" id="etat" list="etatList" placeholder="ex. très bon état"><datalist id="etatList"><option value="neuf avec étiquette"><option value="neuf sans étiquette"><option value="très bon état"><option value="bon état"><option value="satisfaisant"></datalist></div>
       </div>
       <label style="color:var(--ink)"><input type="checkbox" id="texteVisible"> Le vêtement porte du texte ou un logo lisible <span class="muted">(la photo portée sera prise sans miroir, pour ne pas l'inverser)</span></label>
-      <p class="muted">Le mood des photos se choisit à l'étape « Style des photos ».</p>
-      <div class="row" style="margin-top:14px"><button class="btn" id="createBtn">Créer la fiche</button><span class="muted" id="createMsg"></span></div>
+      <div class="row" style="margin-top:14px"><button class="btn" id="createBtn">Créer l'annonce</button><span class="muted" id="createMsg"></span></div>
     </section>
-
-    <section class="card hidden" id="jobCard">
-      <div class="row"><h2 class="grow" id="jobTitle">Fiche</h2><span class="status" id="jobStatus"></span></div>
-      <div id="jobError" class="bad"></div>
-
-      <div id="textBlock" class="hidden">
-        <h3 id="titre"></h3>
-        <p class="desc" id="desc"></p>
-        <p class="muted">Mood : <span id="mood"></span></p>
-        <div class="row">
-          <button class="btn ghost" id="copyTitle">Copier le titre</button>
-          <button class="btn ghost" id="copyDesc">Copier la description</button>
-          <span class="grow"></span>
-          <span class="muted">Cette description te convient ?</span>
-          <span id="descRating"></span>
-        </div>
-        <label>Feedback sur le texte</label>
-        <textarea id="feedbackText" placeholder="Ex. : c'est de la viscose, ton plus sobre, mentionne la coupe"></textarea>
-        <label>Description du vêtement pour les images <span class="muted">(anglais, envoyée au générateur d'images ; modifiable)</span></label>
-        <textarea id="garmentEnText" class="garment-en"></textarea>
-        <div class="row" style="margin-top:8px"><button class="btn ghost" id="refineBtn">Mettre à jour le texte</button>
-          <button class="btn" id="styleBtn">Choisir le style des photos →</button></div>
-      </div>
-
-      <div id="styleBlock" class="hidden" style="margin-top:18px;border-top:1px solid var(--line);padding-top:14px">
-        <h2>2. Style des photos</h2>
-        <div id="warnings" class="warn"></div>
-        <p class="muted">Mood de la fiche (un clic filtre la grille, un second clic retire le filtre) :</p>
-        <div class="chips" id="moodChips"></div>
-        <div class="row">
-          <label class="muted" style="margin:0"><input type="checkbox" id="allTypes"> Tous les types</label>
-          <span class="muted grow" id="gridCount"></span>
-          <span class="muted" id="selCount"></span>
-        </div>
-        <p class="muted" style="margin:6px 0 0"><b style="color:var(--accent)">Vision</b> : image envoyée au générateur (2 max). <b style="color:var(--warn)">Texte</b> : seule sa description est envoyée (3 max).</p>
-        <div class="grid-inspi" id="styleGrid"></div>
-        <div class="row" style="margin-top:10px">
-          <label style="margin:0">Ajouter une inspiration à la bibliothèque et à cette fiche</label>
-          <input type="file" id="ficheUpFiles" accept="image/*" multiple style="width:auto">
-          <button class="btn ghost" id="ficheUpBtn">Envoyer</button><span class="muted" id="ficheUpMsg"></span>
-        </div>
-        <div class="row" style="margin-top:10px">
-          <button class="btn ghost" id="rerollBtn">Revenir à la proposition</button>
-          <button class="btn" id="reviewBtn">Relire ce que l'IA va voir →</button>
-        </div>
-
-        <div id="reviewPanel" class="review hidden">
-          <h2>3. Ce que l'IA va voir</h2>
-          <label>Description du vêtement (anglais)</label>
-          <textarea id="garmentEn" class="garment-en"></textarea>
-          <label>Mannequin (plan porté, décrit en texte)</label>
-          <textarea id="mannequinDesc"></textarea>
-          <label>Inspirations envoyées en image (vision)</label>
-          <div class="thumbs" id="reviewVision"></div>
-          <label>Inspirations envoyées en texte</label>
-          <ol id="reviewTexte"></ol>
-          <div class="row">
-            <div class="grow"><label>Mood</label><select id="moodSelect"></select></div>
-            <div class="grow"><label style="color:var(--ink)"><input type="checkbox" id="photoSansMiroir"> Photo portée : sans miroir (texte/logo lisible)</label></div>
-          </div>
-          <div class="row" style="margin-top:12px">
-            <button class="btn" id="validateBtn">Générer les 3 photos</button>
-            <span class="muted">~0,25 $ pour 3 photos</span>
-          </div>
-        </div>
-      </div>
-    </section>
+    <section class="card hidden" id="stepText"></section>
+    <section class="card hidden" id="stepInspi"></section>
+    <section class="card hidden" id="stepPhotos"></section>
+    <section class="card hidden" id="journalCard"><h3>Suivi</h3><div id="journal"></div></section>
   </div>
 
-  <!-- ========== GALERIE ========== -->
-  <div id="tab-galerie" class="hidden">
-    <section class="card">
-      <div class="row">
-        <div class="grow"><label style="margin:0">Fiche (identifiant)</label><input type="text" id="openId" placeholder="ex. mufe74xl35gs"></div>
-        <button class="btn ghost" id="openBtn">Ouvrir</button>
-      </div>
-    </section>
-    <div id="galleryBody" class="hidden">
+  <!-- ========== HISTORIQUE ========== -->
+  <div id="tab-historique" class="hidden"></div>
+
+  <!-- ========== RÉGLAGES ========== -->
+  <div id="tab-reglages" class="hidden">
+    <details class="card" id="dConnexion">
+      <summary>Connexion</summary>
+      <label>URL des webhooks n8n</label>
+      <input type="text" id="setBase">
+      <label>Secret (en-tête X-VFN-Secret)</label>
+      <input type="password" id="setSecret" autocomplete="off">
+      <p class="muted">Le secret est gardé dans ce navigateur uniquement (localStorage).</p>
+      <div class="row" style="margin-top:14px"><button class="btn" id="setSave">Enregistrer</button></div>
+    </details>
+    <details class="card" id="dProfil">
+      <summary>Profil de rédaction</summary>
+      <p class="muted">Profil de <b id="profUser"></b></p>
       <section class="card">
-        <div class="row"><h2 class="grow" id="gTitle"></h2><span class="status" id="gStatus"></span></div>
-        <p class="muted" id="gCost"></p>
-        <div id="gError" class="bad"></div>
-        <p class="desc" id="gDesc"></p>
-        <div class="row"><button class="btn ghost" id="gCopyTitle">Copier le titre</button><button class="btn ghost" id="gCopyDesc">Copier la description</button></div>
+        <p class="muted">Ces préférences sont ajoutées au prompt qui rédige tes descriptions (courtes puces, environ 300 tokens maximum). Les descriptions que tu notes 👍 servent en plus d'exemples de style (2 au plus, du même genre et type) pour les prochaines fiches.</p>
+        <textarea id="profText" style="min-height:150px" placeholder="- Toujours mentionner la matière et la taille&#10;- Ton sobre, pas de superlatifs"></textarea>
+        <div class="row"><span class="muted" id="profCount"></span><span class="grow"></span>
+          <button class="btn ghost" id="profPropose">Proposer une mise à jour depuis mes retours</button>
+          <button class="btn" id="profSave">Enregistrer</button></div>
+        <p class="muted" id="profMsg"></p>
       </section>
-      <div class="plans" id="plans"></div>
-      <section class="card" style="margin-top:16px">
-        <h2>Note finale</h2>
-        <div class="row"><span id="globalRating"></span></div>
-        <div class="chips" id="globalReasons"></div>
-        <label>Commentaire</label>
-        <textarea id="globalComment" placeholder="Qu'est-ce qui a marché, qu'est-ce qui a raté ?"></textarea>
-        <div class="row" style="margin-top:8px"><button class="btn" id="globalSend">Envoyer la note finale</button><span class="muted" id="globalMsg"></span></div>
+      <div id="profProposal" class="card hidden"></div>
+    </details>
+    <details class="card" id="dBiblio">
+      <summary>Bibliothèque d'inspirations</summary>
+      <section class="card">
+        <h2>Ajouter des inspirations</h2>
+        <div class="row">
+          <div class="grow"><label>Genre</label><select id="upGenre"></select></div>
+          <div class="grow"><label>Type de vêtement</label><input type="text" id="upType" list="typeList" placeholder="jupe, veste…"></div>
+        </div>
+        <label>Photos</label><input type="file" id="upFiles" accept="image/*" multiple>
+        <div class="row" style="margin-top:10px"><button class="btn" id="upBtn">Ajouter et indexer</button><span class="muted" id="upMsg"></span></div>
       </section>
-    </div>
-  </div>
-
-  <!-- ========== BIBLIOTHEQUE ========== -->
-  <div id="tab-biblio" class="hidden">
-    <section class="card">
-      <h2>Ajouter des inspirations</h2>
-      <div class="row">
-        <div class="grow"><label>Genre</label><select id="upGenre"></select></div>
-        <div class="grow"><label>Type de vêtement</label><input type="text" id="upType" list="typeList" placeholder="jupe, veste…"></div>
-      </div>
-      <label>Photos</label><input type="file" id="upFiles" accept="image/*" multiple>
-      <div class="row" style="margin-top:10px"><button class="btn" id="upBtn">Ajouter et indexer</button><span class="muted" id="upMsg"></span></div>
-    </section>
-    <section class="card">
-      <div class="row">
-        <div class="grow"><label style="margin:0">Genre</label><select id="fGenre"></select></div>
-        <div class="grow"><label style="margin:0">Type</label><select id="fType"></select></div>
-        <div class="grow"><label style="margin:0">Mood</label><select id="fMood"></select></div>
-        <label class="muted" style="margin:0"><input type="checkbox" id="fActive"> actives seulement</label>
-        <button class="btn ghost" id="libReload">Recharger</button>
-      </div>
-      <p class="muted" id="libCount"></p>
-    </section>
-    <div class="lib" id="lib"></div>
-  </div>
-
-  <!-- ========== PROFIL ========== -->
-  <div id="tab-profil" class="hidden">
-    <section class="card">
-      <h2>Profil de rédaction de <span id="profUser"></span></h2>
-      <p class="muted">Ces préférences sont ajoutées au prompt qui rédige tes descriptions (courtes puces, environ 300 tokens maximum). Les descriptions que tu notes 👍 servent en plus d'exemples de style (2 au plus, du même genre et type) pour les prochaines fiches.</p>
-      <textarea id="profText" style="min-height:150px" placeholder="- Toujours mentionner la matière et la taille&#10;- Ton sobre, pas de superlatifs"></textarea>
-      <div class="row"><span class="muted" id="profCount"></span><span class="grow"></span>
-        <button class="btn ghost" id="profPropose">Proposer une mise à jour depuis mes retours</button>
-        <button class="btn" id="profSave">Enregistrer</button></div>
-      <p class="muted" id="profMsg"></p>
-    </section>
-    <div id="profProposal" class="card hidden"></div>
-  </div>
-
-  <!-- ========== PROMPTS ========== -->
-  <div id="tab-prompts" class="hidden">
-    <section class="card">
-      <h2>Prompts et ajustements</h2>
-      <p class="muted">Les prompts sont lus à chaque génération : activer une version change immédiatement le comportement, et on peut toujours revenir en arrière. Une proposition d'ajustement est créée <b>inactive</b> : rien ne change tant que tu ne l'actives pas.</p>
-      <div class="row">
-        <div class="grow"><label style="margin:0">Prompt</label><select id="pName"></select></div>
-        <div><label style="margin:0">Période (jours)</label><input type="text" id="pDays" value="30" style="width:80px"></div>
-        <button class="btn" id="pPropose">Proposer un ajustement</button>
-      </div>
-      <p class="muted" id="pMsg"></p>
-    </section>
-    <div id="pProposal" class="card hidden"></div>
-    <div id="pVersions"></div>
+      <section class="card">
+        <div class="row">
+          <div class="grow"><label style="margin:0">Genre</label><select id="fGenre"></select></div>
+          <div class="grow"><label style="margin:0">Type</label><select id="fType"></select></div>
+          <div class="grow"><label style="margin:0">Mood</label><select id="fMood"></select></div>
+          <label class="muted" style="margin:0"><input type="checkbox" id="fActive"> actives seulement</label>
+          <button class="btn ghost" id="libReload">Recharger</button>
+        </div>
+        <p class="muted" id="libCount"></p>
+      </section>
+      <div class="lib" id="lib"></div>
+    </details>
+    <details class="card" id="dPrompts">
+      <summary>Prompts</summary>
+      <p class="muted">Modifier un prompt change immédiatement les prochaines générations, et on peut toujours revenir à une version précédente. À ne toucher que si tu sais ce que tu fais.</p>
+      <section class="card">
+        <div class="row">
+          <div class="grow"><label style="margin:0">Prompt</label><select id="pName"></select></div>
+          <div><label style="margin:0">Période (jours)</label><input type="text" id="pDays" value="30" style="width:80px"></div>
+          <button class="btn" id="pPropose">Proposer un ajustement</button>
+        </div>
+        <p class="muted" id="pMsg"></p>
+      </section>
+      <div id="pProposal" class="card hidden"></div>
+      <div id="pVersions"></div>
+    </details>
   </div>
 </main>
-
-<dialog id="settings">
-  <h2>Réglages</h2>
-  <label>URL des webhooks n8n</label>
-  <input type="text" id="setBase">
-  <label>Secret (en-tête X-VFN-Secret)</label>
-  <input type="password" id="setSecret" autocomplete="off">
-  <p class="muted">Le secret est gardé dans ce navigateur uniquement (localStorage).</p>
-  <div class="row" style="margin-top:14px"><button class="btn" id="setSave">Enregistrer</button><button class="btn ghost" id="setCancel">Fermer</button></div>
-</dialog>
 
 <script>
 "use strict";
@@ -361,9 +292,9 @@ const GRADE = {
 };
 const MAX_VISION = 2, MAX_TEXTE = 3;
 const STATUS_LABELS = {
-  texte_en_cours: "Rédaction du texte…", texte_pret: "Texte prêt", selection_en_cours: "Choix du style…",
-  en_attente_validation: "En attente de validation", generation_en_cours: "Génération des photos…",
-  galerie_prete: "Galerie prête", budget_depasse: "Plafond de coût atteint", termine: "Terminée", erreur: "Erreur"
+  texte_en_cours: "Rédaction de l'annonce…", texte_pret: "Annonce prête", selection_en_cours: "Recherche des inspirations…",
+  en_attente_validation: "À toi de choisir les inspirations", generation_en_cours: "Génération des photos…",
+  premiere_prete: "Première photo prête", galerie_prete: "Photos prêtes", budget_depasse: "Plafond de coût atteint", termine: "Terminée", erreur: "Erreur"
 };
 const BUSY = ["texte_en_cours", "selection_en_cours", "generation_en_cours"];
 
@@ -480,21 +411,17 @@ let currentJobId = null;   // fiche suivie : toute réponse d'une autre fiche es
 let pollFails = 0;
 const planState = new Map();   // job_id|plan → { pastilles:Set, fb:string, raw:bool } : survit aux re-rendus de la galerie
 const inputPhotos = new Map();   // job_id → URL locale de la 1re photo d'entrée (fiches créées dans cette session)
-// Brouillon de l'étape style / relecture, propre à une fiche : jamais écrasé par les rafraîchissements.
+// Brouillon de la fiche courante : jamais écrasé par les rafraîchissements de statut.
 let draft = null;
 function draftFor(j) {
-  if (!draft || draft.jobId !== j.job_id) draft = { jobId: j.job_id, initSel: false, sel: { vision: [], texte: [] }, selTouched: false, pending: [], mood: "", moodFilter: "", allTypes: false,
-    garment: null, garmentDirty: false, mannequin: null, sansMiroir: null, reviewOpen: false };
+  if (!draft || draft.jobId !== j.job_id) draft = { jobId: j.job_id, initSel: false, sel: { vision: [], texte: [] }, selTouched: false, pending: [], moods: [], garment: null, garmentDirty: false, mannequin: null, mannequinDirty: false };
   const d = draft;
   if (!d.garmentDirty && j.garment_en != null) d.garment = j.garment_en;
+  if (!d.mannequinDirty && j.mannequin_desc != null) d.mannequin = j.mannequin_desc;
   if (j.statut === "en_attente_validation" && !d.initSel) {
     d.initSel = true; d.selTouched = false;
     d.sel.vision = (j.decor_refs || []).map(r => r.file_id).slice(0, MAX_VISION);
     d.sel.texte = (j.inspi_texte || []).map(r => r.file_id).filter(id => !d.sel.vision.includes(id)).slice(0, MAX_TEXTE);
-    d.mood = moodIds().includes(j.mood) ? j.mood : "";
-    d.moodFilter = d.mood;
-    d.mannequin = j.mannequin_desc || "";
-    d.sansMiroir = !!j.texte_visible;
   }
   return d;
 }
@@ -514,7 +441,6 @@ async function loadConfig() {
   fillSelect($("#genre"), CONFIG.genres); fillSelect($("#upGenre"), CONFIG.genres);
   const allTypes = [...new Set(Object.values(CONFIG.types_par_genre).flat())].sort();
   $("#typeList").innerHTML = ""; for (const t of allTypes) $("#typeList").append(h("option", { value: t }));
-  fillSelect($("#moodSelect"), CONFIG.moods.map(m => ({ value: m.id, label: m.id.replaceAll("_", " ") })), "— choisir un mood —");
 }
 
 function moodChip(m, on, onClick) {
@@ -523,15 +449,18 @@ function moodChip(m, on, onClick) {
 
 // ---------- onglets ----------
 function showTab(name) {
-  for (const t of ["fiche", "galerie", "biblio", "profil", "prompts"]) $("#tab-" + t).classList.toggle("hidden", t !== name);
-  if (name === "profil") loadProfile();
+  for (const t of ["creer", "historique", "reglages"]) $("#tab-" + t).classList.toggle("hidden", t !== name);
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
   store.set("tab", name);
-  if (name === "biblio" && !LIB) loadLibrary();
-  if (name === "prompts" && !PROMPTS) loadPrompts();
-  if (name === "galerie" && job) renderGallery();
+  if (name === "historique") loadHistory();
 }
 document.querySelectorAll("#tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+function loadHistory() {}    // remplacée en Task 13
+
+// Réglages : chargement à l'ouverture de chaque section
+$("#dProfil").addEventListener("toggle", () => { if ($("#dProfil").open) loadProfile(); });
+$("#dBiblio").addEventListener("toggle", () => { if ($("#dBiblio").open && !LIB) loadLibrary(); });
+$("#dPrompts").addEventListener("toggle", () => { if ($("#dPrompts").open && !PROMPTS) loadPrompts(); });
 
 // ---------- suivi d'une fiche ----------
 function stopPoll() { if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; } }
@@ -545,9 +474,13 @@ async function refreshJob(id) {
     throw e;
   }
   if (id !== currentJobId) return job;               // l'utilisateur a changé de fiche pendant l'attente
-  pollFails = 0; job = j;
-  store.set("job", id);
-  renderAll();
+  pollFails = 0;
+  const prev = job;
+  if (!prev || prev.job_id !== j.job_id) resetJournal(j.job_id);
+  job = j; store.set("job", id);
+  for (const l of journalLines(prev && prev.job_id === j.job_id ? prev : null, j)) pushJournal(l.text, l.kind);
+  if (j.statut === "texte_en_cours") armTextTimer(j.job_id);
+  renderCreate();
   stopPoll();
   if (BUSY.includes(job.statut)) schedulePoll(id, 3000);
   return job;
@@ -564,7 +497,53 @@ function setStatus(el, statut) {
   el.textContent = STATUS_LABELS[statut] || statut || "";
   el.className = "status" + (BUSY.includes(statut) ? " busy" : "") + (statut === "erreur" || statut === "budget_depasse" ? " err" : "");
 }
-function renderAll() { renderFiche(); renderGallery(); }
+
+// ---------- journal ----------
+let journal = { jobId: null, lines: [] };
+function resetJournal(jobId) { journal = { jobId, lines: [] }; }
+function pushJournal(text, kind) {
+  const last = journal.lines[journal.lines.length - 1];
+  if (last && last.text === text) return;
+  const t = new Date(); const hh = String(t.getHours()).padStart(2, "0") + ":" + String(t.getMinutes()).padStart(2, "0") + ":" + String(t.getSeconds()).padStart(2, "0");
+  journal.lines.push({ text, kind: kind || "info", hh });
+}
+function renderJournal() {
+  const box = $("#journal"); box.innerHTML = "";
+  for (const l of journal.lines) box.append(h("div", { class: "l " + l.kind }, l.hh + "  " + l.text));
+  box.scrollTop = box.scrollHeight;
+}
+let textTimer = null;
+function armTextTimer(jobId) {              // 2ᵉ message du texte : temporisé (un seul état côté n8n)
+  clearTimeout(textTimer);
+  textTimer = setTimeout(() => { if (job && job.job_id === jobId && job.statut === "texte_en_cours") { pushJournal("Rédaction de l'annonce…"); renderJournal(); } }, 3000);
+}
+
+function renderCreate() {
+  const step = stepOf(job);
+  document.querySelectorAll("#stepper .step").forEach(el => {
+    const n = Number(el.dataset.step);
+    el.classList.toggle("active", n === step);
+    el.classList.toggle("done", !!job && n < step);
+  });
+  $("#newBar").classList.toggle("hidden", !job);
+  $("#jobRef").textContent = job ? "Annonce " + job.job_id : "";
+  $("#stepForm").classList.toggle("hidden", !!job);
+  $("#stepText").classList.toggle("hidden", !job || step !== 1);
+  $("#stepInspi").classList.toggle("hidden", !job || step !== 2);
+  $("#stepPhotos").classList.toggle("hidden", !job || step !== 3);
+  $("#journalCard").classList.toggle("hidden", !job);
+  if (!job) return;
+  const d = draftFor(job);
+  if (step === 1) renderText(d); else if (step === 2) renderInspi(d); else renderPhotos(d);
+  renderJournal();
+}
+function renderText() {}     // remplacée en Task 10
+function renderInspi() {}    // remplacée en Task 11
+function renderPhotos() {}   // remplacée en Task 12
+$("#newBtn").addEventListener("click", () => {
+  stopPoll(); clearTimeout(textTimer); job = null; currentJobId = null; draft = null; store.set("job", "");
+  globalNote = null; globalReasons = new Set(); resetJournal(null); renderCreate();
+});
 
 function ratingWidget(target, kind, container) {
   container.innerHTML = "";
@@ -618,10 +597,6 @@ let libLoading = false;
 function syncGarment(d) {
   for (const ta of document.querySelectorAll(".garment-en")) if (document.activeElement !== ta && ta.value !== (d.garment || "")) ta.value = d.garment || "";
 }
-for (const ta of document.querySelectorAll(".garment-en")) ta.addEventListener("input", () => {
-  if (!draft) return; draft.garment = ta.value; draft.garmentDirty = true;
-  for (const o of document.querySelectorAll(".garment-en")) if (o !== ta) o.value = ta.value;
-});
 
 // ----- grille des inspirations -----
 const libById = id => (LIB || []).find(i => i.drive_file_id === id);
@@ -700,7 +675,6 @@ function renderStyleGrid() {
   $("#selCount").textContent = "Sélection : " + sel.vision.length + "/" + MAX_VISION + " vision · " + sel.texte.length + "/" + MAX_TEXTE + " texte";
   renderReview();
 }
-$("#allTypes").addEventListener("change", () => { if (draft) { draft.allTypes = $("#allTypes").checked; renderStyleGrid(); } });
 
 // ----- écran « ce que l'IA va voir » -----
 function renderReview() {
@@ -724,13 +698,6 @@ function renderReview() {
   }
   if (!d.sel.texte.length) ol.append(h("li", { class: "muted" }, "Aucune inspiration en texte."));
 }
-$("#mannequinDesc").addEventListener("input", () => { if (draft) draft.mannequin = $("#mannequinDesc").value; });
-$("#photoSansMiroir").addEventListener("change", () => { if (draft) draft.sansMiroir = $("#photoSansMiroir").checked; });
-$("#moodSelect").addEventListener("change", () => { if (draft) { draft.mood = $("#moodSelect").value; draft.moodFilter = draft.mood; if (draft.mood && !draft.selTouched) preselect(draft); renderStyleGrid(); } });
-$("#reviewBtn").addEventListener("click", () => {
-  if (!draft) return; draft.reviewOpen = true; renderStyleGrid();
-  $("#reviewPanel").scrollIntoView({ behavior: "smooth", block: "start" });
-});
 
 // ----- page galerie -----
 function renderGallery() {
@@ -843,15 +810,11 @@ $("#createBtn").addEventListener("click", async () => {
   try {
     const r = await api("POST", "/job", fd);
     inputPhotos.set(r.job_id, URL.createObjectURL(files[0]));
-    draft = null; globalNote = null; globalReasons = new Set(); $("#globalComment").value = "";
+    draft = null; globalNote = null; globalReasons = new Set();
     $("#createMsg").textContent = "";
     await refreshJob(r.job_id);
   } catch (e) { toast(e.message); $("#createMsg").textContent = e.message; }
   $("#createBtn").disabled = false;
-});
-$("#refineBtn").addEventListener("click", async () => {
-  const msg = $("#feedbackText").value.trim(); if (!msg) return toast("Écris un feedback sur le texte");
-  try { await api("POST", "/job/texte", { job_id: job.job_id, message: msg }); $("#feedbackText").value = ""; await refreshJob(job.job_id); } catch (e) { toast(e.message); }
 });
 async function startStyle() {
   try {
@@ -861,72 +824,7 @@ async function startStyle() {
     if (job.statut === "en_attente_validation") $("#styleBlock").scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (e) { toast(e.message); }
 }
-$("#styleBtn").addEventListener("click", startStyle);
-$("#rerollBtn").addEventListener("click", startStyle);
-$("#validateBtn").addEventListener("click", async () => {
-  const d = draft; if (!d) return;
-  const selectedMood = $("#moodSelect").value || d.mood;
-  if (!selectedMood) return toast("Choisis un mood");
-  if (!$("#garmentEn").value.trim()) return toast("La description du vêtement (anglais) est vide");
-  $("#validateBtn").disabled = true;
-  try {
-    await api("POST", "/job/valider", {
-      job_id: job.job_id, mood: selectedMood,
-      decor_refs: d.sel.vision, inspi_texte: d.sel.texte,
-      garment_en: $("#garmentEn").value, mannequin_desc: $("#mannequinDesc").value,
-      texte_visible: $("#photoSansMiroir").checked
-    });
-    await refreshJob(job.job_id); showTab("galerie");
-  } catch (e) { toast(e.message, 6000); }
-  $("#validateBtn").disabled = false;
-});
-// Nouvelle inspiration déposée pendant la fiche : ajoutée à la bibliothèque puis à la sélection.
-$("#ficheUpBtn").addEventListener("click", async () => {
-  const files = [...$("#ficheUpFiles").files]; if (!files.length || !job) return toast("Choisis au moins une photo");
-  const jobAtStart = job.job_id;
-  const fd = new FormData(); fd.append("genre", job.genre); fd.append("type_vetement", job.type_vetement);
-  files.forEach((f, i) => fd.append("photo" + i, f, f.name));
-  $("#ficheUpBtn").disabled = true; $("#ficheUpMsg").textContent = "Envoi…";
-  try {
-    const r = await api("POST", "/library/upload", fd);
-    const ids = r.drive_file_ids || [];
-    if (currentJobId !== jobAtStart || !draft || draft.jobId !== jobAtStart) { $("#ficheUpMsg").textContent = ""; $("#ficheUpBtn").disabled = false; return; }  // fiche changée pendant l'envoi
-    const d = draft;
-    d.pending.push(...ids.filter(x => !d.pending.includes(x)));
-    const adoptKnown = () => {   // n'entrent dans la sélection que les ids déjà connus de la bibliothèque
-      if (!draft || draft.jobId !== jobAtStart) return;
-      for (const id of [...d.pending]) {
-        if (!libById(id)) continue;
-        d.pending = d.pending.filter(x => x !== id);
-        if (d.sel.vision.includes(id) || d.sel.texte.includes(id)) continue;
-        if (d.sel.vision.length < MAX_VISION) d.sel.vision.push(id);
-        else if (d.sel.texte.length < MAX_TEXTE) d.sel.texte.push(id);
-        d.selTouched = true;
-      }
-    };
-    $("#ficheUpMsg").textContent = ids.length + " photo(s) envoyée(s) ; indexation en cours (~5 s par photo), la grille se recharge dans 20 s.";
-    $("#ficheUpFiles").value = ""; renderStyleGrid();
-    await loadLibrary(); adoptKnown(); if (job && job.job_id === jobAtStart && job.statut === "en_attente_validation") renderStyleGrid();
-    setTimeout(async () => { await loadLibrary(); adoptKnown(); if (job && job.job_id === jobAtStart && job.statut === "en_attente_validation") renderStyleGrid(); }, 20000);
-  } catch (e) { $("#ficheUpMsg").textContent = e.message; toast(e.message); }
-  $("#ficheUpBtn").disabled = false;
-});
 const copy = async (text, what) => { try { await navigator.clipboard.writeText(text); toast(what + " copié"); } catch (e) { toast("Copie impossible"); } };
-$("#copyTitle").addEventListener("click", () => copy(job.titre, "Titre"));
-$("#copyDesc").addEventListener("click", () => copy(job.description, "Description"));
-$("#gCopyTitle").addEventListener("click", () => copy(job.titre, "Titre"));
-$("#gCopyDesc").addEventListener("click", () => copy(job.description, "Description"));
-$("#openBtn").addEventListener("click", async () => {
-  const id = $("#openId").value.trim(); if (!id) return;
-  try { globalNote = null; globalReasons = new Set(); $("#globalComment").value = ""; await refreshJob(id); } catch (e) { toast(e.message); }
-});
-$("#globalSend").addEventListener("click", async () => {
-  if (!globalNote) return toast("Choisis 👍 ou 👎");
-  try {
-    await api("POST", "/job/feedback", { job_id: job.job_id, cible: "global", note: globalNote, raisons: [...globalReasons], commentaire: $("#globalComment").value });
-    $("#globalMsg").textContent = "Merci, fiche clôturée."; await refreshJob(job.job_id);
-  } catch (e) { toast(e.message); }
-});
 
 // ---------- bibliothèque ----------
 let LIB = null;
@@ -988,7 +886,7 @@ async function loadProfile() {
   catch (e) { toast(e.message); }
 }
 $("#profText").addEventListener("input", profCount);
-$("#userSel").addEventListener("change", () => { if (!$("#tab-profil").classList.contains("hidden")) loadProfile(); });
+$("#userSel").addEventListener("change", () => { if ($("#dProfil").open) loadProfile(); });
 $("#profSave").addEventListener("click", async () => {
   try { const r = await api("POST", "/users/profil", { user: $("#userSel").value, preferences_md: $("#profText").value }); $("#profMsg").textContent = "Profil enregistré (" + r.caracteres + " caractères)."; }
   catch (e) { toast(e.message); }
@@ -1066,18 +964,17 @@ $("#pPropose").addEventListener("click", async () => {
 });
 
 // ---------- réglages & démarrage ----------
-function openSettings() { $("#setBase").value = base(); $("#setSecret").value = store.get("secret") || ""; $("#settings").showModal(); }
-$("#settingsBtn").addEventListener("click", openSettings);
-$("#setCancel").addEventListener("click", () => $("#settings").close());
-$("#setSave").addEventListener("click", async () => {
+function openSettings() { $("#setBase").value = base(); $("#setSecret").value = store.get("secret") || ""; showTab("reglages"); $("#dConnexion").open = true; }
+$("#setSave").addEventListener("click", () => {
   store.set("base", $("#setBase").value.trim() || DEFAULT_BASE); store.set("secret", $("#setSecret").value.trim());
-  $("#settings").close(); start();
+  toast("Connexion enregistrée"); start();
 });
 
 async function start() {
   if (!store.get("secret")) { openSettings(); return; }
-  try { await loadConfig(); } catch (e) { toast(e.message, 6000); return; }
-  showTab(store.get("tab") || "fiche");
+  try { await loadConfig(); } catch (e) { toast(e.message, 6000); openSettings(); return; }
+  showTab(store.get("tab") === "historique" || store.get("tab") === "reglages" ? store.get("tab") : "creer");
+  renderCreate();
   const last = store.get("job");
   if (last) refreshJob(last).catch(() => {});
 }
