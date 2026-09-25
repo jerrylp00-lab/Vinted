@@ -231,7 +231,7 @@ Script de mesure de coût : `scripts/measure_cost.sh <job_id>` (lit VFN_SECRET d
 
 ## Référence des workflows n8n (audit de l'instance, 2026-09-25)
 
-Relevé fait directement sur l'instance n8n (nœuds, connexions, code, tables, exécutions), pas depuis cette doc. **28 workflows** au départ : 26 publiés, 2 inactifs (Sauvegarde, Migration). Le n°28 a été **archivé le 2026-09-25** : il reste **27 workflows, dont 26 publiés et 1 inactif** (Sauvegarde). Tous préfixés `VFN —`. Un seul secret protège tous les webhooks (header `X-VFN-Secret`, credential `VFN webhook secret`). Modèles : `google/gemini-2.5-flash-lite` (texte, vision) et Fal `nano-banana-2/edit` (images, repli OpenRouter) ; prompts lus à chaque exécution dans la table `prompts` (version active la plus haute).
+Relevé fait directement sur l'instance n8n (nœuds, connexions, code, tables, exécutions), pas depuis cette doc. **28 workflows** au départ : 26 publiés, 2 inactifs (Sauvegarde, Migration). Le n°28 a été **archivé le 2026-09-25** (27 workflows). Le lot 1 (génération en deux temps, historique, erreurs) a ajouté 3 workflows publiés (n°29 à 31) : il y a désormais **30 workflows, dont 29 publiés et 1 inactif** (Sauvegarde), hors workflows archivés. Tous préfixés `VFN —`. Un seul secret protège tous les webhooks (header `X-VFN-Secret`, credential `VFN webhook secret`). Modèles : `google/gemini-2.5-flash-lite` (texte, vision) et Fal `nano-banana-2/edit` (images, repli OpenRouter) ; prompts lus à chaque exécution dans la table `prompts` (version active la plus haute).
 
 Tables : `jobs` (une ligne par fiche), `shots` (une ligne par image générée ou échec), `feedback` (pouces, notes, signaux implicites), `prompts` (versions), `library` (photos d'inspiration), `users` (profils).
 
@@ -246,7 +246,7 @@ Tables : `jobs` (une ligne par fiche), `shots` (une ligne par image générée o
 | 5 | Choisir le style | webhook `POST /job/style` | `ao81dPakf9IqTIyr` | front | garder |
 | 6 | Sélectionner le style | sous-workflow | `FI9HyhPdvbATuSqw` | 5 | fusionnable dans 5 |
 | 7 | Valider le plan | webhook `POST /job/valider` | `z1SY3ZkptHVSd4al` | front | garder |
-| 8 | Générer les 3 plans | sous-workflow | `9Y0O9Z4MO9wVM0xB` | 7 | garder |
+| 8 | Générer les plans | sous-workflow | `9Y0O9Z4MO9wVM0xB` | 7, 29 | garder |
 | 9 | Générer un plan | sous-workflow | `HKMVyeJJQTSoBN6X` | 8, 11 | fusionnable avec 10 |
 | 10 | Tentative image | sous-workflow | `pGvWMH08Go4yGJYp` | 9 | garder |
 | 11 | Régénérer un plan | webhook `POST /job/plan` | `MIeRXvNz9a4cwKIo` | front | garder |
@@ -267,6 +267,11 @@ Tables : `jobs` (une ligne par fiche), `shots` (une ligne par image générée o
 | 26 | Proposer une mise à jour du profil | webhook `POST /users/profil/propose` | `PHlT76TnZbViAFlw` | front | garder |
 | 27 | Sauvegarde (manuelle) | manuel, inactif | `DD9ug6YEISQkIYgP` | UI n8n | garder |
 | 28 | Migrer les descriptions (unique) | manuel, inactif | `f8NwfsZiJTnKOHO3` | — | **archivé le 2026-09-25** (restaurable depuis l'UI n8n) |
+| 29 | Générer la suite (webhook, `POST /job/suite`) | webhook `POST /job/suite` | `RD2H9Cb4CApoAxMw` | front | garder |
+| 30 | Lire les fiches (historique) | webhook `GET /jobs` | `OUNyHxzNFzlY0oLQ` | front | garder |
+| 31 | Erreurs et fiches bloquées | Error Trigger + toutes les 2 min | `TvTJZ1U0bYgvwbug` | erreur des 11 workflows n°1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 29 ; planificateur | garder |
+
+Le n°31 est configuré comme `errorWorkflow` de : 1, 2, 3, 5, 6, 7, 8, 9, 10, 11 et 29 (`5erMviLZ0qLPtd1E`, `gdGJLLnGtW79Jeol`, `bRdAbgJiiGKwNyvP`, `ao81dPakf9IqTIyr`, `FI9HyhPdvbATuSqw`, `z1SY3ZkptHVSd4al`, `9Y0O9Z4MO9wVM0xB`, `HKMVyeJJQTSoBN6X`, `pGvWMH08Go4yGJYp`, `MIeRXvNz9a4cwKIo`, `RD2H9Cb4CApoAxMw`).
 
 ### Chaîne d'appels d'une fiche
 
@@ -274,14 +279,17 @@ Tables : `jobs` (une ligne par fiche), `shots` (une ligne par image générée o
 front ─ POST /job ─▶ [1 Créer] ─▶ [2 Texte] ─▶ statut texte_pret
 front ─ POST /job/texte ─▶ [3 Affiner] ─▶ [2 Texte]
 front ─ POST /job/style ─▶ [5 Choisir le style] ─▶ [6 Sélectionner] ─▶ en_attente_validation
-front ─ POST /job/valider ─▶ [7 Valider] ─▶ [8 3 plans] ─▶ 3 × [9 Un plan] ─▶ [10 Tentative image]
+front ─ POST /job/valider ─▶ [7 Valider] ─▶ [8 Plans] ─▶ [9 Un plan] (porte_miroir) ─▶ [10 Tentative image] ─▶ statut premiere_prete
+front ─ POST /job/suite ─▶ [29 Suite] ─▶ [8 Plans] ─▶ 2 × [9 Un plan] (cintre, detail) ─▶ [10 Tentative image]
                                                              └▶ [14 Journal] quand les 3 plans sont là
 front ─ POST /job/plan ─▶ [11 Régénérer] ─▶ [9 Un plan] ─▶ [10 Tentative image]
 front ─ GET /job-status ─▶ [4 Statut]   (polling)
+front ─ GET /jobs ─▶ [30 Historique]
+erreur d'un workflow, ou toutes les 2 min ─▶ [31 Erreurs et fiches bloquées] ─▶ statut erreur / plans en échec
 front ─ POST /job/feedback ─▶ [13 Feedback] ─▶ [14 Journal]
 ```
 
-Statuts d'un job : `texte_en_cours` → `texte_pret` → `selection_en_cours` → `en_attente_validation` → `generation_en_cours` → `galerie_prete` (ou `budget_depasse`) → `termine` ; `erreur` possible aux étapes texte et sélection.
+Statuts d'un job : `texte_en_cours` → `texte_pret` → `selection_en_cours` → `en_attente_validation` → `generation_en_cours` → `premiere_prete` (première photo `porte_miroir` prête, en attente de validation) → `generation_en_cours` (`cintre` et `detail`) → `galerie_prete` (ou `budget_depasse`) → `termine` ; `erreur` possible aux étapes texte et sélection (et, via le workflow 31, quand une étape reste bloquée). Si `POST /job/valider` reçoit les 3 plans (ou aucune liste), on passe directement à `galerie_prete`.
 
 ### Fiche : création, texte
 
@@ -294,13 +302,13 @@ Statuts d'un job : `texte_en_cours` → `texte_pret` → `selection_en_cours` �
 **2. Générer le texte** (`gdGJLLnGtW79Jeol`, sous-workflow, entrée `job_id`)
 - Lit le job, tous les prompts, le user, tout le feedback et toute la table `jobs` (pour choisir des exemples approuvés).
 - Télécharge les photos du dossier `input`, les réduit à 1280 px (JPEG 88).
-- `Construire la requête texte` : prompt actif `texte_fiche` avec `{profil}` (préférences du user, tronquées à `config_profil.max_chars`) et `{exemples}` (jusqu'à `nb_exemples` fiches déjà notées 👍 sur la description, même genre et type en priorité) ; ajoute l'historique (`historique`) pour l'affinage.
+- `Construire la requête texte` : prompt actif `texte_fiche` avec `{profil}` (préférences du user, tronquées à `config_profil.max_chars`) et `{exemples}` (jusqu'à `nb_exemples` fiches déjà notées 👍 sur la description **ou** sur la fiche entière (cible `global`), même genre et type en priorité) ; ajoute l'historique (`historique`) pour l'affinage.
 - Appel OpenRouter (JSON strict `{description, garment_en}`, timeout 120 s). Sortie erreur → `Marquer le job en erreur` (statut `erreur`).
 - `Traiter la réponse` : répare le JSON s'il contient des retours ligne bruts, construit le titre `<Type> <marque> — taille <taille>`, ajoute les lignes Marque/Taille/Mesures/État à la description, ajoute la réponse à `historique`, cumule le coût dans `cout_total`, mémorise la version du prompt (`prompt_versions`). Met à jour `jobs` : statut `texte_pret`.
 - `garment_en` (anglais) sert ensuite aux prompts image.
 
-**3. Affiner le texte** (`bRdAbgJiiGKwNyvP`, `POST /job/texte` `{job_id, message}`)
-- 404 si job inconnu. Erreur si `message` vide ou si une génération de texte est déjà en cours. Ajoute `{role:"user"}` à `historique`, statut `texte_en_cours`, **répond**, puis relance le sous-workflow 2.
+**3. Affiner le texte** (`bRdAbgJiiGKwNyvP`, `POST /job/texte` `{job_id, message}` ou `{job_id, retry:true}`)
+- 404 si job inconnu. Erreur si `message` vide (sauf `retry:true`, qui relance la génération sans message et **sans modifier `historique`**) ou si une génération de texte est déjà en cours. Ajoute `{role:"user"}` à `historique` (sauf `retry`), statut `texte_en_cours`, **répond**, puis relance le sous-workflow 2.
 
 **4. Lire une fiche (statut)** (`3EkEko4Qo2ofd7LK`, `GET /job-status?id=`)
 - Lit le job, ses `shots`, son `feedback`, **et liste le dossier Drive `input`** (pour `input_photo_ids`). Assemble une réponse unique : formulaire, titre, description, `garment_en`, mood, `decor_refs`, `inspi_texte`, `mannequin_desc`, avertissements, 3 plans (statut `en_attente`/`pret`/`erreur`, tentative courante, `drive_file_id`, fournisseur, coût, `garde`), feedback par cible, coûts (texte, images, total), erreur, `drive_folder_id`.
@@ -315,28 +323,46 @@ Statuts d'un job : `texte_en_cours` → `texte_pret` → `selection_en_cours` �
 - Lit job, bibliothèque, prompts. Filtre `library` (actif, même genre et type, moods autorisés ; à défaut même genre sans le type, avec avertissement ; sinon rien), trie par `utilisations` décroissantes, met les 2 premières en `decor_refs` (vision) et les 3 suivantes en `inspi_texte` (texte, avec `description_en`), lit `mannequin_desc` du genre dans `config_mannequins`, écrit `avertissements`, statut `en_attente_validation`. Un seul nœud de code plus des lectures : candidat à l'inlining dans 5.
 - Reste mort : `mannequin_file_id` (toujours vide).
 
-**7. Valider le plan** (`z1SY3ZkptHVSd4al`, `POST /job/valider` `{job_id, mood?, decor_refs?[≤2], inspi_texte?[≤3], garment_en?, mannequin_desc?, texte_visible?}`)
-- 409 si le job n'est pas `en_attente_validation`. 400 si plus de 2/3 ids, id inconnu ou inactif, ou id dans les deux listes. Enregistre, statut `generation_en_cours`, **répond**, puis en parallèle : lance le sous-workflow 8 (sans attendre) et incrémente `library.utilisations` de chaque inspiration retenue.
+**7. Valider le plan** (`z1SY3ZkptHVSd4al`, `POST /job/valider` `{job_id, mood?, decor_refs?[≤2], inspi_texte?[≤3], garment_en?, mannequin_desc?, texte_visible?, plans?}`)
+- 409 si le job n'est pas `en_attente_validation`. 400 si `plans` contient autre chose que `porte_miroir`, `cintre`, `detail` (absent = les 3), si plus de 2/3 ids, id inconnu ou inactif, ou id dans les deux listes. Enregistre, statut `generation_en_cours`, **répond**, puis en parallèle : lance le sous-workflow 8 (sans attendre, avec `plans_csv` = les plans demandés) et incrémente `library.utilisations` de chaque inspiration retenue.
 
 ### Fiche : génération des photos
 
-**8. Générer les 3 plans** (`9Y0O9Z4MO9wVM0xB`, sous-workflow)
-- Crée le sous-dossier Drive `output`, enregistre `drive_output_folder_id`, statut `generation_en_cours`, puis lance **3 exécutions du workflow 9** en parallèle et sans attendre : `porte_miroir`, `cintre`, `detail`.
+**8. Générer les plans** (`9Y0O9Z4MO9wVM0xB`, sous-workflow, ex-« Générer les 3 plans » ; entrée `plans` : liste séparée par des virgules, vide = les 3)
+- Crée le sous-dossier Drive `output` **une seule fois** (réutilise `jobs.drive_output_folder_id` s'il existe, donc sûr pour le second appel de `POST /job/suite`), statut `generation_en_cours`, puis lance une exécution du workflow 9 par plan demandé, en parallèle et sans attendre (`porte_miroir`, `cintre`, `detail`).
 
 **9. Générer un plan** (`HKMVyeJJQTSoBN6X`, sous-workflow `{job_id, plan, feedback, force}`)
-- Appelle le workflow 10, relit les `shots`, et si les 3 plans ont une ligne courante : statut `galerie_prete` (ou `budget_depasse` si l'un d'eux est en échec de plafond), puis lance l'écriture du journal (14) sans attendre. Le dernier des 3 qui termine voit les 3 lignes et fait la bascule.
+- Appelle le workflow 10, relit les `shots`, puis décide du statut : 3 plans courants → `galerie_prete` (ou `budget_depasse` si l'un d'eux est en échec de plafond) et lance l'écriture du journal (14) sans attendre ; seul `porte_miroir` courant et aucun autre plan → `premiere_prete` (ou `budget_depasse`) ; sinon il attend les autres. Le dernier plan qui termine voit toutes les lignes et fait la bascule.
 
 **10. Tentative image** (`pGvWMH08Go4yGJYp`, sous-workflow `{job_id, plan, extra, force}`) : le cœur de la génération.
-- Lit job, prompts, shots, liste les photos d'origine. `Préparer la tentative` : numéro de tentative, coût déjà dépensé, **plafond** (`config_plafond` : refuse si dépense + estimation dépasse le plafond, sauf `force`), assemble les briefs (`brief_commun`, `brief_ref_vetement`, `brief_ref_decor`, `brief_garment_en`, `brief_inspi_texte`, `brief_ref_mannequin` pour `porte_miroir` seulement, `brief_plan_<plan>` ou `brief_plan_porte_sans_miroir` si `texte_visible`).
+- Lit job, prompts, shots, liste les photos d'origine. La ligne `Overall mood: …` du brief est omise quand le mood est vide. `Préparer la tentative` : numéro de tentative, coût déjà dépensé, **plafond** (`config_plafond` : refuse si dépense + estimation dépasse le plafond, sauf `force`), assemble les briefs (`brief_commun`, `brief_ref_vetement`, `brief_ref_decor`, `brief_garment_en`, `brief_inspi_texte`, `brief_ref_mannequin` pour `porte_miroir` seulement, `brief_plan_<plan>` ou `brief_plan_porte_sans_miroir` si `texte_visible`).
 - Télécharge et réduit à 1024 px les photos du vêtement puis les 2 inspirations vision, construit le prompt, appelle Fal (`fal.run/<fal_model>`, 300 s). Codes 402/403 → repli OpenRouter ; autre erreur → échec consigné.
 - Image reçue → Drive (`<plan>_<tentative>.png` dans `output`) → ligne `shots` (`courant = true`, `garde = true`, coût, fournisseur, `brief` exact) → les anciennes tentatives du plan passent `courant = false`. Échec → ligne `shots` avec `erreur`.
 - Une seule tentative, pas de check de fidélité ni de retry. Vestiges : champs `retry_needed`, `problemes`, `photo_urls`, colonnes `fidelite_*`.
 
 **11. Régénérer un plan** (`MIeRXvNz9a4cwKIo`, `POST /job/plan` `{job_id, plan, pastilles?, feedback?, force?}`)
-- 409 si le job n'est pas `galerie_prete`/`budget_depasse` ou plan inconnu. 400 si pastille inconnue (liste `config_pastilles`). Concatène fragments de pastilles + consigne libre, statut `generation_en_cours`, enregistre un 👎 implicite (`feedback.implicite = true`), **répond**, lance le workflow 9.
+- 409 si le job n'est pas `galerie_prete`/`budget_depasse` (ou `premiere_prete`, uniquement pour le plan `porte_miroir`) ou plan inconnu. Remet `jobs.erreur` à `''`. 400 si pastille inconnue (liste `config_pastilles`). Concatène fragments de pastilles + consigne libre, statut `generation_en_cours`, enregistre un 👎 implicite (`feedback.implicite = true`), **répond**, lance le workflow 9.
 
 **12. Garder un plan** (`TrqnPOfRw7NLEEzz`, `POST /job/garder` `{job_id, plan, garde: bool}`)
 - Met à jour `shots.garde` sur la ligne courante du plan. 409 si job pas prêt, `garde` non booléen ou plan inconnu. Accepte encore `a_plat` (plan supprimé).
+
+### Fiche : suite de la génération, historique, erreurs
+
+**29. Générer la suite** (`RD2H9Cb4CApoAxMw`, `POST /job/suite` `{job_id}`)
+- Appelé par le front une fois la première photo (`porte_miroir`) validée. 404 si job inconnu. 409 si le job n'est pas `premiere_prete`, ou si la première photo est en erreur ou sans image. Sinon : statut `generation_en_cours`, **répond `{job_id, statut}`**, puis lance le sous-workflow 8 pour `cintre` et `detail` (sans attendre).
+- Limite connue : pas de garde atomique contre un double appel (deux appels rapprochés lanceraient deux fois les plans).
+
+**30. Lire les fiches (historique)** (`OUNyHxzNFzlY0oLQ`, `GET /jobs`)
+- Renvoie `{jobs:[{job_id, user, titre, statut, genre, type_vetement, created_at, cout_texte, cout_images, cout_total, nb_images, nb_regenerations, cover_file_id, note_globale}]}`, la plus récente d'abord. Toutes les fiches, tous users.
+- Lit en entier les tables `jobs`, `shots` et `feedback`. Coût total = `jobs.cout_total` + somme de `shots.cout`, comme `/job-status` (bruit de virgule flottante : arrondir dans le front). Suppose `courant === true` pour repérer les lignes de plan actives.
+- Reste de test : la ligne `jobs` `test_erreur` (sans `shots`, statut `erreur`) apparaît dans la liste ; à supprimer depuis l'UI n8n (Data Tables).
+
+**31. Erreurs et fiches bloquées** (`TvTJZ1U0bYgvwbug`)
+- Deux déclencheurs : `Error Trigger` (réglé comme `errorWorkflow` sur 11 workflows, voir la vue d'ensemble) et planificateur toutes les 2 minutes. Lit `jobs` et `shots` en entier, un nœud `Décider` produit une action, un `Switch` l'aiguille (`shot` : insérer un plan en échec, `job` : mettre à jour la fiche, `msg` : écrire seulement un message).
+- **Chemin erreur** : identifie la fiche comme l'unique fiche dans le statut occupé qui correspond au workflow en échec (Texte → `texte_en_cours`, Style → `selection_en_cours`, Photos → `generation_en_cours`). Échec texte ou style : `statut = erreur` et `erreur = "Texte : …"` / `"Style : …"` tout de suite. Échec photos : écrit seulement `erreur = "Photos : …"` (type `msg`, statut inchangé).
+- **Chien de garde** (planificateur) : fiche occupée depuis plus de 4 min (texte), 3 min (style), 8 min (photos ; 1,5 min si un message d'erreur `Photos` est déjà noté) : texte/style passent en `erreur` avec message ; photos : insère un plan en échec (`erreur "Photos : …"`, `courant = true`) pour chaque plan manquant puis fixe le statut (`premiere_prete`, `galerie_prete` ou `budget_depasse`) avec `erreur ''`. Si seul `porte_miroir` existe (étape 1), rien n'est inséré.
+- Vérifié : l'Error Trigger se déclenche aussi pour les échecs de sous-workflows (exécutions 702 et 703, une par workflow en échec ; parent et sous-workflow écrivent le même job, le message peut nommer l'un ou l'autre). Un tick du planificateur a résolu la fiche de test bloquée `mufe83zs9t5g` (plan `porte_miroir` en échec, statut `premiere_prete`).
+- Limites connues : le délai de 1,5 min après une erreur photos peut devancer des plans encore en cours (acceptable tant qu'un plan dure moins d'environ 90 s) ; les exécutions d'erreur du parent et du sous-workflow se disputent le suffixe du message.
 
 ### Fiche : feedback et journal
 
@@ -353,7 +379,7 @@ Statuts d'un job : `texte_en_cours` → `texte_pret` → `selection_en_cours` �
 
 **16. Lire la bibliothèque** (`g1m9isMxo3gWGuV3`, `GET /library`) : toute la table `library` triée genre/type/nom.
 
-**17. Modifier une photo** (`kNGZI3ZZSRlckkgP`, `POST /library/update` `{drive_file_id, moods?, tags?, actif?}`) : 404 si inconnue ; moods validés contre `moods_liste` (max 3), tags max 12, `actif` booléen.
+**17. Modifier une photo** (`kNGZI3ZZSRlckkgP`, `POST /library/update` `{drive_file_id, moods?, tags?, actif?, description_en?}`) : 404 si inconnue ; moods validés contre `moods_liste` (max 3), tags max 12, `actif` booléen, `description_en` chaîne de 2000 caractères au plus (400 sinon, vide autorisée) ; la réponse renvoie `description_en`.
 
 **18. Ajouter des inspirations** (`a6h3K0SfbhFY4cBp`, `POST /library/upload`, multipart `genre`, `type_vetement`, photos) : valide (genre femme/homme, type ≤ 40 caractères, fichiers image), trouve ou crée le dossier du type sous le genre (ids des dossiers genre codés en dur), envoie `insp_<stamp>_<n>.ext`, **répond**, puis lance l'indexation (15) sans attendre.
 
@@ -386,7 +412,7 @@ Statuts d'un job : `texte_en_cours` → `texte_pret` → `selection_en_cours` �
 ### Audit : à supprimer
 
 - **Archivé** : n°28 (migration unique déjà exécutée, inactive, sans description). Aucun autre workflow ne l'appelait.
-- Rien d'autre n'est mort : les 26 workflows publiés sont tous appelés par le front ou par un autre workflow. Seul le déclencheur `POST /library/reindex` du n°15 n'est pas utilisé (le manuel et l'appel par 18 suffisent), sans conséquence.
+- Rien d'autre n'est mort : les 26 workflows publiés alors audités sont tous appelés par le front ou par un autre workflow. Seul le déclencheur `POST /library/reindex` du n°15 n'est pas utilisé (le manuel et l'appel par 18 suffisent), sans conséquence.
 
 ### Audit : fusions possibles (aucune urgence)
 
@@ -398,12 +424,12 @@ Statuts d'un job : `texte_en_cours` → `texte_pret` → `selection_en_cours` �
 
 ### Audit : points de robustesse et de performance
 
-1. **Fiche coincée en `generation_en_cours`** : aucun workflow d'erreur n'est configuré. Une exception dans le sous-workflow 10 (ex. « Aucune photo dans le dossier input », Drive indisponible) laisse le job dans son statut pour toujours. Seuls les échecs de modèle ou de Fal sont consignés dans `shots`. À traiter par un workflow d'erreur global qui passe le job en `erreur`.
+1. **Fiche coincée : résolu (lot 1)** par le workflow 31 (`Erreurs et fiches bloquées`). Comportements observés : l'Error Trigger se déclenche aussi pour les sous-workflows (exécutions 702/703) ; une fiche de test bloquée (`mufe83zs9t5g`) a été débloquée par un tick du planificateur (plan `porte_miroir` en échec, statut `premiere_prete`). Limites : voir la fiche 31.
 2. **Polling coûteux** : n°4 fait 3 lectures de tables et **1 listage Drive par poll** (il représente la grande majorité des 200 dernières exécutions avec n°19). Stocker `input_photo_ids` dans `jobs` à la création supprime l'appel Drive.
 3. **Lectures complètes de tables** : n°19 lit toute la table `jobs` à chaque image, n°2 lit toute `jobs` et tout `feedback` à chaque génération de texte, n°23 et n°26 lisent tout. Sans impact aujourd'hui, croît avec l'historique.
-4. **Aucun endpoint de liste des jobs** : nécessaire pour la vue historique (à créer).
+4. **Endpoint de liste des jobs** : créé (n°30, `GET /jobs`), qui lit en entier `jobs`, `shots` et `feedback` (même limite de croissance que le point 3).
 5. **Valeurs codées en dur** : racine de la bibliothèque et modèle `gemini-2.5-flash-lite` (n°15, n°2), ids des dossiers genre (n°18), racine de `VFN Fiches` (n°1) ; `config_ajustement.modele` existe déjà pour n°23/26.
 6. **Secret dans le front** : un seul secret partagé, présent dans le navigateur ; CORS ouvert (`*`). Acceptable pour un usage à deux, à connaître.
 7. **Sauvegarde** : manuelle, n'exporte que les workflows actifs (donc pas n°27, qui est inactif) et aucune planification.
 8. **Vestiges à nettoyer** : `a_plat` (n°12), `mannequin_file_id`, colonnes `shots.fidelite_*`, champs `retry_needed`/`problemes`, `telegram_text` et `chat_id` (n°23), `meta_ajustement` v1 qui décrit encore 4 photos et un check de fidélité.
-9. **Documentation périmée** : l'en-tête de l'étape 4 parle de « 4 plans » et l'étape 3 de jugement LLM ; l'état réel est 3 plans, sélection sans LLM (le workflow 8 s'appelle maintenant `Générer les 3 plans`).
+9. **Documentation périmée** : l'en-tête de l'étape 4 parle de « 4 plans » et l'étape 3 de jugement LLM ; l'état réel est 3 plans (générés en deux temps : `porte_miroir` d'abord, puis `cintre` et `detail`), sélection sans LLM (le workflow 8 s'appelle maintenant `Générer les plans`).
