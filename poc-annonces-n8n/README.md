@@ -1,5 +1,7 @@
 # poc-annonces-n8n
 
+> **V3** : 3 photos par fiche (`porte_miroir`, `cintre`, `detail`) sans check ni retry automatique, mood et inspirations choisis par l'humain (2 en vision, 3 en texte anglais), mannequin et vêtement décrits en texte. Coût mesuré : 0,24 $ par fiche (0,40 $ avant, à nombre d'images comparable). Détails : étape 9 ci-dessous.
+
 Back-end n8n des fiches Vinted. Spec : `specs/2026-09-24-backend-n8n-design.md`.
 
 Instance : `https://178-105-102-54.sslip.io` (projet personnel `TXEVSUXNA9B85FIU`).
