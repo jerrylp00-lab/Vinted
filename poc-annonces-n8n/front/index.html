@@ -172,7 +172,7 @@
       <div id="inspiError" class="bad"></div>
       <div class="row hidden" id="retryStyleBar"><button class="btn" id="retryStyleBtn">Réessayer</button></div>
       <div id="warnings" class="warn"></div>
-      <p class="muted">Filtre par ambiance (plusieurs possibles ; aucun = toute la bibliothèque). Choisis 1 ou 2 photos <b style="color:var(--accent)">principales</b> (vues par le générateur) et jusqu'à 3 <b style="color:var(--warn)">secondaires</b> (seule leur description est utilisée).</p>
+      <p class="muted">Filtre par ambiance (plusieurs possibles ; aucun = toute la bibliothèque). Choisis 1 photo <b style="color:var(--accent)">principale</b> (vue par le générateur : elle définit le décor, la lumière et la palette) et jusqu'à 3 <b style="color:var(--warn)">secondaires</b> (seule leur description est utilisée, pour reprendre des éléments).</p>
       <div class="chips" id="moodChips"></div>
       <div class="row"><span class="muted grow" id="gridCount"></span><span class="muted" id="selCount"></span></div>
       <div class="grid-inspi" id="styleGrid"></div>
@@ -353,13 +353,7 @@ function summarize(jobs, days, now) {
 }
 // </logic>
 const DEFAULT_BASE = "https://178-105-102-54.sslip.io/webhook/vfn";
-// Étalonnage appliqué côté front aux images générées (affichage et téléchargement). À régler à l'œil.
-const GRADE = {
-  saturate: 0.82, sepia: 0.10, contrast: 0.97, brightness: 1.02,  // filtres CSS, appliqués dans cet ordre
-  grainAlpha: 0.06, grainDots: 60000,                              // grain : opacité et nombre de points (1 px)
-  jpegQuality: 0.92
-};
-const MAX_VISION = 2, MAX_TEXTE = 3;
+const MAX_VISION = 1, MAX_TEXTE = 3;
 const STATUS_LABELS = {
   texte_en_cours: "Rédaction de l'annonce…", texte_pret: "Annonce prête", selection_en_cours: "Recherche des inspirations…",
   en_attente_validation: "À toi de choisir les inspirations", generation_en_cours: "Génération des photos…",
@@ -420,50 +414,6 @@ function imageUrl(id) {
   return imgCache.get(id);
 }
 
-// ---------- étalonnage des images générées ----------
-function loadImage(src) {
-  return new Promise((resolve, reject) => { const i = new Image(); i.onload = () => resolve(i); i.onerror = () => reject(new Error("image illisible")); i.src = src; });
-}
-const clamp255 = v => v < 0 ? 0 : v > 255 ? 255 : v;
-// Repli pixel par pixel (mêmes formules que les filtres CSS) si le canvas ne gère pas ctx.filter (anciens Safari).
-function gradePixels(ctx, w, hgt) {
-  const d = ctx.getImageData(0, 0, w, hgt), px = d.data;
-  const s = GRADE.saturate, a = 1 - GRADE.sepia, c = GRADE.contrast, b = GRADE.brightness;
-  const S = [0.213 + 0.787 * s, 0.715 - 0.715 * s, 0.072 - 0.072 * s, 0.213 - 0.213 * s, 0.715 + 0.285 * s, 0.072 - 0.072 * s, 0.213 - 0.213 * s, 0.715 - 0.715 * s, 0.072 + 0.928 * s];
-  const P = [0.393 + 0.607 * a, 0.769 - 0.769 * a, 0.189 - 0.189 * a, 0.349 - 0.349 * a, 0.686 + 0.314 * a, 0.168 - 0.168 * a, 0.272 - 0.272 * a, 0.534 - 0.534 * a, 0.131 + 0.869 * a];
-  const mul = (M, r, g, bl) => [clamp255(M[0] * r + M[1] * g + M[2] * bl), clamp255(M[3] * r + M[4] * g + M[5] * bl), clamp255(M[6] * r + M[7] * g + M[8] * bl)];
-  for (let i = 0; i < px.length; i += 4) {
-    let [r, g, bl] = mul(S, px[i], px[i + 1], px[i + 2]);
-    [r, g, bl] = mul(P, r, g, bl);
-    r = clamp255((r * c + 127.5 * (1 - c)) * b); g = clamp255((g * c + 127.5 * (1 - c)) * b); bl = clamp255((bl * c + 127.5 * (1 - c)) * b);
-    px[i] = r; px[i + 1] = g; px[i + 2] = bl;
-  }
-  ctx.putImageData(d, 0, 0);
-}
-function gradedDataUrl(img) {
-  const c = document.createElement("canvas");
-  c.width = img.naturalWidth; c.height = img.naturalHeight;
-  const ctx = c.getContext("2d");
-  const canFilter = typeof ctx.filter === "string";
-  if (canFilter) ctx.filter = "saturate(" + GRADE.saturate + ") sepia(" + GRADE.sepia + ") contrast(" + GRADE.contrast + ") brightness(" + GRADE.brightness + ")";
-  ctx.drawImage(img, 0, 0);
-  if (canFilter) ctx.filter = "none"; else gradePixels(ctx, c.width, c.height);
-  ctx.globalAlpha = GRADE.grainAlpha;
-  for (let i = 0; i < GRADE.grainDots; i++) {
-    ctx.fillStyle = Math.random() > 0.5 ? "#fff" : "#000";
-    ctx.fillRect(Math.random() * c.width, Math.random() * c.height, 1, 1);
-  }
-  return c.toDataURL("image/jpeg", GRADE.jpegQuality);
-}
-const gradedCache = new Map();
-function gradedUrl(id) {
-  if (!gradedCache.has(id)) {
-    const p = imageUrl(id).then(loadImage).then(gradedDataUrl);
-    p.catch(() => gradedCache.delete(id));
-    gradedCache.set(id, p);
-  }
-  return gradedCache.get(id);
-}
 const io = new IntersectionObserver(entries => {
   for (const en of entries) if (en.isIntersecting) {
     const img = en.target; io.unobserve(img);
@@ -563,7 +513,7 @@ function renderHistory() {
         const shots = h("div", { class: "plans hist-shots", style: "grid-template-columns:repeat(auto-fit,minmax(200px,1fr))" });
         for (const p of d.plans) {
           const fig = h("figure", { style: "margin:0" });
-          if (p.statut === "pret") { const img = h("img", { class: "shot", alt: "" }); gradedUrl(p.drive_file_id).then(u => { img.src = u; }).catch(() => { img.alt = "image indisponible"; }); fig.append(img); }
+          if (p.statut === "pret") { const img = h("img", { class: "shot", alt: "" }); imageUrl(p.drive_file_id).then(u => { img.src = u; }).catch(() => { img.alt = "image indisponible"; }); fig.append(img); }
           else fig.append(h("div", { class: "ph" }, p.statut === "erreur" ? "Échec : " + cleanErr(p.erreur) : "Pas générée"));
           fig.append(h("figcaption", { class: "muted" }, (PLAN_LABELS[p.plan] || p.plan) + (p.statut === "pret" ? " · " + p.fournisseur + " · " + money(p.cout_plan) + (p.tentatives_total > 1 ? " · " + p.tentatives_total + " tentatives" : "") : "")));
           shots.append(fig);
@@ -736,7 +686,7 @@ function renderInspi(d) {
       card.append(lazyImg(id), mchips,
         h("div", { class: "muted" }, it.type_vetement + " · utilisée " + (it.utilisations || 0) + " fois"),
         h("div", { class: "seg" },
-          h("button", { class: "v" + (isV ? " on" : ""), title: "Image envoyée au générateur (2 max)", onclick: () => toggleInspi(id, "vision") }, "Principale"),
+          h("button", { class: "v" + (isV ? " on" : ""), title: "Image envoyée au générateur : définit le décor (1 seule)", onclick: () => toggleInspi(id, "vision") }, "Principale"),
           h("button", { class: "t" + (isT ? " on" : ""), title: "Seule sa description est envoyée (3 max)", onclick: () => toggleInspi(id, "texte") }, "Secondaire")),
         h("button", { class: "linkbtn", onclick: () => descBox.classList.toggle("hidden") }, "Modifier la description"),
         descBox);
@@ -754,7 +704,7 @@ $("#rerollBtn").addEventListener("click", startStyle);
 $("#validateBtn").addEventListener("click", async () => {
   const d = draft; if (!d || !job) return;
   const ids = [...d.sel.vision, ...d.sel.texte];
-  if (!ids.length && !confirm("Aucune inspiration choisie. Générer quand même ?")) return;
+  if (d.sel.vision.length !== 1) return toast("Choisis une inspiration principale : elle définit le décor");
   const mood = moodUnion(LIB || [], ids).join(", ");
   $("#validateBtn").disabled = true;
   try {
@@ -797,7 +747,7 @@ $("#ficheUpBtn").addEventListener("click", async () => {
   } catch (e) { $("#ficheUpMsg").textContent = e.message; toast(e.message); }
   $("#ficheUpBtn").disabled = false;
 });
-const planState = new Map();   // job_id|plan → { pastilles:Set, fb:string, raw:bool } : survit aux re-rendus
+const planState = new Map();   // job_id|plan → { fb:string } : survit aux re-rendus
 const inputPhotos = new Map(); // job_id → URL locale de la 1re photo d'entrée (annonces créées dans cette session)
 let globalNote = null; let globalReasons = new Set();
 
@@ -809,7 +759,7 @@ function origFigure(url) {
 }
 
 function renderPhotos() {
-  const stateFor = plan => { const k = job.job_id + "|" + plan; if (!planState.has(k)) planState.set(k, { pastilles: new Set(), fb: "", raw: false }); return planState.get(k); };
+  const stateFor = plan => { const k = job.job_id + "|" + plan; if (!planState.has(k)) planState.set(k, { fb: "" }); return planState.get(k); };
   setStatus($("#gStatus"), job.statut);
   $("#gCost").textContent = "Coût : " + job.cout_total.toFixed(3) + " $ (texte " + job.cout_texte.toFixed(4) + " $, images " + job.cout_images.toFixed(3) + " $) · plafond " + (CONFIG ? CONFIG.plafond_usd : 1) + " $";
   $("#gError").textContent = job.statut === "erreur" ? job.erreur : "";
@@ -827,20 +777,17 @@ function renderPhotos() {
     card.append(h("h3", {}, (idx + 1) + "/3 · " + (PLAN_LABELS[p.plan] || p.plan)));
     if (p.statut === "pret") {
       const img = h("img", { class: "shot", alt: "" });
-      const ps = stateFor(p.plan); let raw = ps.raw;
-      const show = () => (raw ? imageUrl(p.drive_file_id) : gradedUrl(p.drive_file_id)).then(u => { img.src = u; }).catch(() => { img.alt = "image indisponible"; });
-      show();
-      const right = h("figure", {}, img, h("figcaption", {}, raw ? "Générée (brute)" : "Générée (étalonnée)"));
-      const rawBtn = h("button", { class: "btn ghost", onclick: () => { raw = ps.raw = !raw; rawBtn.textContent = raw ? "Voir étalonnée" : "Voir brut"; right.querySelector("figcaption").textContent = raw ? "Générée (brute)" : "Générée (étalonnée)"; show(); } }, raw ? "Voir étalonnée" : "Voir brut");
+      imageUrl(p.drive_file_id).then(u => { img.src = u; }).catch(() => { img.alt = "image indisponible"; });
+      const right = h("figure", {}, img, h("figcaption", {}, "Générée"));
       const dl = h("a", { class: "muted", href: "#" }, "Télécharger");
       dl.addEventListener("click", async ev => {
         ev.preventDefault();
-        try { const u = raw ? await imageUrl(p.drive_file_id) : await gradedUrl(p.drive_file_id);
-          const a = h("a", { href: u, download: job.job_id + "_" + p.plan + (raw ? "_brut" : "") + ".jpg" }); document.body.append(a); a.click(); a.remove();
+        try { const u = await imageUrl(p.drive_file_id);
+          const a = h("a", { href: u, download: job.job_id + "_" + p.plan + ".jpg" }); document.body.append(a); a.click(); a.remove();
         } catch (e) { toast("Téléchargement impossible : " + e.message); }
       });
       card.append(h("div", { class: "pair" }, origFig(), right));
-      card.append(h("div", { class: "bar" }, h("span", { class: "muted" }, p.fournisseur + " · " + (p.cout_plan || 0).toFixed(2) + " $"), rawBtn, dl));
+      card.append(h("div", { class: "bar" }, h("span", { class: "muted" }, p.fournisseur + " · " + (p.cout_plan || 0).toFixed(2) + " $"), dl));
       if (gallery) {
         const keep = h("input", { type: "checkbox" }); keep.checked = p.garde;
         keep.addEventListener("change", async () => { try { await api("POST", "/job/garder", { job_id: job.job_id, plan: p.plan, garde: keep.checked }); } catch (e) { toast(e.message); keep.checked = !keep.checked; } });
@@ -853,21 +800,15 @@ function renderPhotos() {
       card.append(h("div", { class: "pair" }, origFig(), h("figure", {}, h("div", { class: "ph" }, msg))));
     }
     if (canRegen(p.plan) && (p.statut === "pret" || p.statut === "erreur")) {
-      const pastilles = stateFor(p.plan).pastilles, pBox = h("div", { class: "chips" });
-      for (const ps of (CONFIG && CONFIG.pastilles) || []) {
-        const cb = h("input", { type: "checkbox" }); cb.checked = pastilles.has(ps.code);
-        cb.addEventListener("change", () => cb.checked ? pastilles.add(ps.code) : pastilles.delete(ps.code));
-        pBox.append(h("label", { class: "chip", style: "margin:0;color:var(--ink)", title: ps.fragment }, cb, " " + ps.code.replaceAll("_", " ")));
-      }
-      const fb = h("input", { type: "text", placeholder: "Consigne libre pour refaire (facultatif)", value: stateFor(p.plan).fb });
+      const fb = h("input", { type: "text", placeholder: "Explique ce qui ne va pas (facultatif)", value: stateFor(p.plan).fb });
       fb.addEventListener("input", () => { stateFor(p.plan).fb = fb.value; });
       const force = st === "budget_depasse" ? h("input", { type: "checkbox" }) : null;
       const btn = h("button", { class: "btn ghost", onclick: async () => {
         btn.disabled = true;
-        try { await api("POST", "/job/plan", { job_id: job.job_id, plan: p.plan, feedback: fb.value, pastilles: [...pastilles], force: !!(force && force.checked) }); await refreshJob(job.job_id); }
+        try { await api("POST", "/job/plan", { job_id: job.job_id, plan: p.plan, feedback: fb.value, force: !!(force && force.checked) }); await refreshJob(job.job_id); }
         catch (e) { toast(e.message); btn.disabled = false; }
       } }, "Refaire cette photo (~0,08 $)");
-      card.append(h("div", { class: "muted", style: "margin-top:6px" }, "Ajustements pour la refaire :"), pBox, fb,
+      card.append(h("div", { class: "muted", style: "margin-top:6px" }, "Ce qui ne va pas :"), fb,
         h("div", { class: "bar" }, btn, force ? h("label", { style: "margin:0;color:var(--ink)" }, force, " dépasser le plafond") : null));
     }
     box.append(card);
