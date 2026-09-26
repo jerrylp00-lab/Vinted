@@ -106,6 +106,7 @@
   .seg { display: inline-flex; gap: 4px; background: var(--chip); border-radius: 10px; padding: 3px; margin-bottom: 8px; }
   .seg button { border: 0; background: none; color: var(--muted); font: inherit; padding: 8px 18px; border-radius: 8px; cursor: pointer; min-height: 40px; }
   .seg button.on { background: var(--card); color: var(--ink); font-weight: 600; }
+  img.broken { min-height: 80px; color: var(--bad); font-size: 13px; padding: 10px; background: var(--chip); }
   .smileys { display: flex; gap: 10px; margin: 8px 0; }
   .smileys button { font-size: 30px; background: var(--chip); border: 2px solid transparent; border-radius: 12px; padding: 6px 16px; cursor: pointer; }
   .smileys button.on { border-color: var(--accent); }
@@ -351,7 +352,12 @@ const postJson = (path, body, root) => api(path, { method: "POST", headers: { "C
 const imgCache = new Map();
 let imgActive = 0; const imgQueue = [];
 function fetchBlob(id, full) {
-  return fetch(base() + "/image?id=" + encodeURIComponent(id) + (full ? "&full=1" : ""), { headers: authHeaders() }).then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.blob(); });
+  const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 45000);
+  return fetch(base() + "/image?id=" + encodeURIComponent(id) + (full ? "&full=1" : ""), { headers: authHeaders(), signal: ctl.signal })
+    .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.blob(); })
+    .then(b => (b.type && b.type.startsWith("image/")) ? b : new Blob([b], { type: "image/jpeg" }))
+    .catch(e => { throw new Error(e.name === "AbortError" ? "délai dépassé" : e.message); })
+    .finally(() => clearTimeout(to));
 }
 function loadImg(el, id) {
   if (!id) return;
@@ -361,11 +367,14 @@ function loadImg(el, id) {
 function pump() {
   while (imgActive < 3 && imgQueue.length) {
     const { el, id } = imgQueue.shift(); imgActive++;
-    (imgCache.has(id) ? Promise.resolve(imgCache.get(id)) : fetchBlob(id, false).then(b => { const u = URL.createObjectURL(b); imgCache.set(id, u); return u; }))
-      .then(u => { el.src = u; }).catch(() => { el.alt = "image indisponible"; }).finally(() => { imgActive--; pump(); });
+    const get = () => imgCache.has(id) ? Promise.resolve(imgCache.get(id)) : fetchBlob(id, false).then(b => { const u = URL.createObjectURL(b); imgCache.set(id, u); return u; });
+    get().catch(() => get())
+      .then(u => { el.src = u; })
+      .catch(e => { el.alt = "image indisponible (" + e.message + ") : touche pour réessayer"; el.title = el.alt; el.classList.add("broken"); el.onclick = ev => { ev.stopPropagation(); el.classList.remove("broken"); el.alt = ""; loadImg(el, id); }; })
+      .finally(() => { imgActive--; pump(); });
   }
 }
-function imgEl(id, cls) { const i = document.createElement("img"); if (cls) i.className = cls; i.loading = "lazy"; loadImg(i, id); return i; }
+function imgEl(id, cls) { const i = document.createElement("img"); if (cls) i.className = cls; loadImg(i, id); return i; }
 function ph(text) { const d = document.createElement("div"); d.className = "ph"; d.textContent = text; return d; }
 
 // --- vues : menu (accueil), annonce (formulaire / résultat), réglages
