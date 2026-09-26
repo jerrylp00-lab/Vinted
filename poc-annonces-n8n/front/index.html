@@ -103,6 +103,9 @@
   .modal { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: flex-end; justify-content: center; z-index: 30; }
   .modal .sheet { background: var(--card); width: 100%; max-width: 480px; border-radius: 16px 16px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; }
   .modal .sheet h3 { font-size: 16px; margin: 0; }
+  .seg { display: inline-flex; gap: 4px; background: var(--chip); border-radius: 10px; padding: 3px; margin-bottom: 8px; }
+  .seg button { border: 0; background: none; color: var(--muted); font: inherit; padding: 8px 18px; border-radius: 8px; cursor: pointer; min-height: 40px; }
+  .seg button.on { background: var(--card); color: var(--ink); font-weight: 600; }
   .smileys { display: flex; gap: 10px; margin: 8px 0; }
   .smileys button { font-size: 30px; background: var(--chip); border: 2px solid transparent; border-radius: 12px; padding: 6px 16px; cursor: pointer; }
   .smileys button.on { border-color: var(--accent); }
@@ -146,6 +149,7 @@
         </div>
 
         <label>Mannequin <span class="muted">(modifiable ; ta modification est mémorisée pour les prochains runs)</span></label>
+        <div class="seg" id="mannGenre"><button type="button" data-g="femme" class="on">Femme</button><button type="button" data-g="homme">Homme</button></div>
         <textarea id="mannequin"></textarea>
 
         <div class="row">
@@ -230,8 +234,11 @@
       <div class="row" style="margin-top:14px"><button class="btn" id="setSave">Enregistrer</button></div>
     </details>
     <details class="card" open id="dMannequin">
-      <summary>Mannequin par défaut</summary>
+      <summary>Mannequins par défaut</summary>
+      <label>Femme</label>
       <textarea id="mannDefault"></textarea>
+      <label>Homme</label>
+      <textarea id="mannDefaultHomme"></textarea>
       <div class="row" style="margin-top:8px"><button class="btn" id="mannSave">Enregistrer</button><span class="muted" id="mannMsg"></span></div>
     </details>
     <details class="card" id="dPrompts">
@@ -321,7 +328,7 @@ const base = () => (store.get(LS.base) || DEFAULT_BASE).replace(/\/+$/, "");
 const baseV3 = () => base().replace(/\/vfn4$/, "/vfn");
 const authHeaders = () => ({ "X-VFN-Secret": store.get(LS.secret) });
 
-let cfg = null, inspis = [], selectedInspi = "", currentRun = null, pollTimer = null, textWatch = null, lastMannequin = "";
+let cfg = null, inspis = [], selectedInspi = "", currentRun = null, pollTimer = null, textWatch = null, lastMannequin = { femme: "", homme: "" }, genre = "femme";
 
 function toast(msg) {
   const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t);
@@ -389,21 +396,31 @@ $("modal").onclick = e => { if (e.target === $("modal")) closeSheet(); };
 async function loadConfig() {
   cfg = await api("/config");
   $("nImg").min = cfg.n.min; $("nImg").max = cfg.n.max; if (!$("nImg").dataset.touched) $("nImg").value = cfg.n.defaut;
-  lastMannequin = cfg.mannequin.texte; $("mannequin").value = lastMannequin; $("mannDefault").value = lastMannequin;
+  lastMannequin = { femme: cfg.mannequin.texte, homme: (cfg.mannequin_homme && cfg.mannequin_homme.texte) || "" };
+  $("mannDefault").value = lastMannequin.femme; $("mannDefaultHomme").value = lastMannequin.homme; $("mannequin").value = lastMannequin[genre];
   $("goHint").textContent = "≈ " + fmtUsd(cfg.estimation_image_usd) + " pour l'image test";
   $("costInfo").textContent = "Plafond de coût par annonce : " + fmtUsd(cfg.plafond_usd) + ". Estimation par image : " + fmtUsd(cfg.estimation_image_usd) + ". Le lancement du lot est refusé si le coût estimé dépasse ce qui reste.";
 }
 $("nImg").oninput = () => { $("nImg").dataset.touched = "1"; };
 
-async function saveMannequin(text, from) {
-  text = text.trim();
-  if (!text || text === lastMannequin) return false;
-  await postJson("/prompt/save", { nom: "config_mannequin", texte: text, notes: "modifié depuis " + from });
-  lastMannequin = text; $("mannequin").value = text; $("mannDefault").value = text;
+const MANN_NOM = { femme: "config_mannequin", homme: "config_mannequin_homme" };
+async function saveMannequin(text, from, g) {
+  g = g || genre; text = text.trim();
+  if (!text || text === lastMannequin[g]) return false;
+  await postJson("/prompt/save", { nom: MANN_NOM[g], texte: text, notes: "modifié depuis " + from });
+  lastMannequin[g] = text;
+  if (g === genre) $("mannequin").value = text;
+  $(g === "femme" ? "mannDefault" : "mannDefaultHomme").value = text;
   return true;
 }
+document.querySelectorAll("#mannGenre button").forEach(b => b.onclick = async () => {
+  try { await saveMannequin($("mannequin").value, "le formulaire"); } catch (e) { toast(e.message); }
+  genre = b.dataset.g;
+  document.querySelectorAll("#mannGenre button").forEach(x => x.classList.toggle("on", x === b));
+  $("mannequin").value = lastMannequin[genre];
+});
 $("mannequin").onchange = async () => { try { if (await saveMannequin($("mannequin").value, "le formulaire")) toast("Mannequin mémorisé"); } catch (e) { toast(e.message); } };
-$("mannSave").onclick = async () => { try { $("mannMsg").textContent = (await saveMannequin($("mannDefault").value, "les réglages")) ? "Enregistré ✓" : "Aucun changement"; } catch (e) { $("mannMsg").textContent = e.message; } };
+$("mannSave").onclick = async () => { try { const a = await saveMannequin($("mannDefault").value, "les réglages", "femme"); const b = await saveMannequin($("mannDefaultHomme").value, "les réglages", "homme"); $("mannMsg").textContent = (a || b) ? "Enregistré ✓" : "Aucun changement"; } catch (e) { $("mannMsg").textContent = e.message; } };
 
 // --- inspirations
 async function loadInspis(selectId) {
