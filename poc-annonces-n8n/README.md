@@ -2,6 +2,8 @@
 
 > **V3** : 3 photos par fiche (`porte_miroir`, `cintre`, `detail`) sans check ni retry automatique, mood et inspirations choisis par l'humain (2 en vision, 3 en texte anglais), mannequin et vêtement décrits en texte. Coût mesuré : 0,24 $ par fiche (0,40 $ avant, à nombre d'images comparable). Détails : étape 9 ci-dessous.
 
+> **V4 (en cours, branche `poc-annonces-n8n-v4`)** : formulaire unique, 2 prompts (`prompt_image`, `prompt_texte`), image test puis lot, texte d'annonce automatique. Spec : `specs/2026-09-26-v4-design.md`. Workflows `VFN4 —` créés à côté de la V3 (la V3 reste intacte). Voir « V4 — workflows » en bas de ce fichier.
+
 Back-end n8n des fiches Vinted. Spec : `specs/2026-09-24-backend-n8n-design.md`.
 
 Instance : `https://178-105-102-54.sslip.io` (projet personnel `TXEVSUXNA9B85FIU`).
@@ -445,3 +447,28 @@ Statuts d'un job : `texte_en_cours` → `texte_pret` → `selection_en_cours` �
 - Pose et manière de prendre la photo (2026-09-25) : `brief_image` v5 (la référence fournit lieu, lumière, palette, mood, angle, cadrage, pose et attitude de la personne ; seuls ses vêtements et accessoires sont ignorés) et `cadrages` v3 (le porté suit la manière de prendre la photo de la référence ; selfie miroir seulement si la référence n'a pas de personne). `config_mannequins` v3 = description physique seule. Constat : la description du mannequin ne précisait pas la couleur de peau, donc le générateur produisait une femme blanche par défaut.
 - Mannequin femme (2026-09-25) : `config_mannequins` v4, décrite d'après la photo de référence (peau foncée, grande et longiligne) ; l'homme est inchangé.
 - Inspirations texte et tenue de l'inspiration (2026-09-25) : `brief_image` v5 reste active (les inspirations texte sont dans le prompt, et le reste de la tenue de la personne de l'inspiration peut être repris tant que le produit est porté). Essai abandonné puis supprimé : une v6 sans inspirations texte, motivée par un cas où la description texte d'une inspiration (rue, asphalte, soleil de midi) l'emportait sur l'image de référence (appartement parisien). Ce risque existe donc toujours ; pistes proposées, non retenues à ce jour : détails seuls calculés par photo, règle de priorité, champ libre dans la fiche.
+
+## V4 — workflows (2026-09-26)
+
+Base des webhooks : `https://178-105-102-54.sslip.io/webhook/vfn4` (secret `X-VFN-Secret`, comme la V3). Tables : `v4_runs` (`AYjOFjUd7m4uqqSl`), `v4_images` (`m5r6LJ3bqObyAGTS`) ; prompts dans la table `prompts` existante (`prompt_image` v1, `prompt_texte` v1, `config_mannequin` v1, `config_v4` v1) ; `config_plafond` et `config_image` réutilisés. Inspirations : dossier Drive `VFN4 Inspis` (`1oHHFfXsmciXYhh8OM1Q2p90YWafZ-amt`), lignes `library` avec `source = v4_inspi` (aucune indexation).
+
+| Workflow | ID | Endpoint |
+|---|---|---|
+| `VFN4 — Lancer un run` | `FjNPDElD6nSmJ4YG` | `POST /run` multipart `photo0` + `user`, `inspi_file_id`, `n`, `mannequin`, `pose`, `notes`, `taille`, `marque`, `mesures` : crée le run, lance l'image test |
+| `VFN4 — Tentative image` (sous-workflow) | `4z0d40ZM5M2LG6ya` | une image (Fal puis repli OpenRouter, 1 relance auto), plafond par run |
+| `VFN4 — Feedback sur le test` | `zHWRaOFpByhCcwqq` | `POST /run/feedback` `{run_id, feedback}` : feedback cumulé, regénère l'image test |
+| `VFN4 — Valider le test` | `4KyeAfU8b5oJsqfG` | `POST /run/valider` `{run_id, n?}` : refuse si le coût estimé dépasse le plafond, sinon N-1 images et texte en parallèle |
+| `VFN4 — Texte de l'annonce` (sous-workflow) | `KBnvTc2jQfpJoaP5` | titre et description depuis la photo input et les champs |
+| `VFN4 — Texte : régénérer ou modifier` | `mPRmg9CViGYFk73I` | `POST /run/texte` `{run_id, action: regenerer \| editer, titre?, description?}` |
+| `VFN4 — Lire un run` | `UcxH2TePkSEFP9Ec` | `GET /run?id=` (statuts : `test_en_cours`, `test_pret`, `test_erreur`, `lot_en_cours`, `termine`) |
+| `VFN4 — Historique des runs` | `a6T0ZouMZlhUiJYl` | `GET /runs` |
+| `VFN4 — Configuration pour le front` | `jQ9rp9FaIEp3QgW1` | `GET /config` |
+| `VFN4 — Enregistrer une version de prompt` | `cu8mZofHYt0IuF5I` | `POST /prompt/save` `{nom, texte, notes?}` (nouvelle version active ; sert aussi au mannequin) |
+| `VFN4 — Inspirations` | `WLI27TZ5tfwwSbvO` | `GET /inspis`, `POST /inspis` multipart `photo0…` |
+| `VFN4 — Aperçu d'une image Drive` | `mixkXgJO00deogqW` | `GET /image?id=` |
+
+Réutilisés de la V3 (inchangés) : `GET /prompts` (liste avec versions) et `POST /prompts/activer` (restauration d'une version).
+
+Test réel (run `mui0mz3ele65`, n = 2) : test + lot + texte en ~1 min, 0,08 $ par image ; boucle feedback puis nouvelle validation vérifiée (essai 2 du test et de l'image 1). Total des tests : 0,32 $.
+
+Limites connues : pas de workflow d'erreur ni de chien de garde V4 (un run bloqué reste `*_en_cours`) ; le front V4 n'est pas encore écrit (le `front/index.html` actuel parle à la V3) ; le plafond est par run (`config_plafond`), comme en V3.
