@@ -523,7 +523,7 @@ async function loadHistory() {
       row.appendChild(r.miniature ? imgEl(r.miniature) : Object.assign(document.createElement("div"), { className: "mini" }));
       const mid = document.createElement("div");
       const h = document.createElement("b"); h.textContent = r.titre || "(sans titre)"; mid.appendChild(h);
-      const m = document.createElement("div"); m.className = "muted"; m.textContent = new Date(r.cree_le).toLocaleString("fr-FR") + " · " +  + r.nb_images + "/" + r.n + " images · " + r.statut + (r.erreur ? " · " + cleanErr(r.erreur) : ""); mid.appendChild(m);
+      const m = document.createElement("div"); m.className = "muted"; m.textContent = new Date(r.cree_le).toLocaleString("fr-FR") + " · " + r.nb_images + "/" + r.n + " images · " + r.statut + (r.erreur ? " · " + cleanErr(r.erreur) : ""); mid.appendChild(m);
       row.appendChild(mid);
       const c = document.createElement("div"); c.textContent = fmtUsd(r.cout_total); row.appendChild(c);
       row.onclick = () => openRun(r.run_id).catch(e => toast(e.message));
