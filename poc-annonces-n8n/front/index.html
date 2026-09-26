@@ -82,24 +82,56 @@
   details.card > summary { cursor: pointer; font-weight: 600; font-size: 16px; }
   details.card[open] > summary { margin-bottom: 12px; }
   .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; align-items: start; }
+  button.btn { min-height: 44px; }
+  input[type=text], input[type=password], input[type=number], select, textarea { font-size: 16px; }
+  header { padding-top: max(12px, env(safe-area-inset-top)); }
+  .btn.danger { background: var(--bad); color: #fff; }
+  .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  @media (min-width: 700px) { .menu-grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); } }
+  .acard { position: relative; background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; cursor: pointer; display: flex; flex-direction: column; }
+  .acard .thumb { width: 100%; aspect-ratio: 3/4; object-fit: cover; background: var(--chip); display: grid; place-items: center; color: var(--muted); font-size: 13px; }
+  .acard .info { padding: 8px 10px 10px; }
+  .acard .info b { display: block; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .acard.new { border: 2px dashed var(--accent); color: var(--accent); align-items: center; justify-content: center; text-align: center; font-weight: 650; min-height: 220px; gap: 6px; }
+  .acard.new .plus { font-size: 40px; line-height: 1; }
+  .badge { position: absolute; top: 8px; left: 8px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 650; background: var(--chip); color: var(--ink); }
+  .badge.ok { background: var(--good); color: #fff; }
+  .badge.busy { background: var(--accent); color: var(--accent-ink); }
+  .badge.todo { background: var(--warn); color: #fff; }
+  .badge.err { background: var(--bad); color: #fff; }
+  .acard .more { position: absolute; top: 6px; right: 6px; width: 36px; height: 36px; border-radius: 50%; border: 0; background: rgba(0,0,0,.55); color: #fff; font-size: 18px; cursor: pointer; }
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: flex-end; justify-content: center; z-index: 30; }
+  .modal .sheet { background: var(--card); width: 100%; max-width: 480px; border-radius: 16px 16px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; }
+  .modal .sheet h3 { font-size: 16px; margin: 0; }
+  .smileys { display: flex; gap: 10px; margin: 8px 0; }
+  .smileys button { font-size: 30px; background: var(--chip); border: 2px solid transparent; border-radius: 12px; padding: 6px 16px; cursor: pointer; }
+  .smileys button.on { border-color: var(--accent); }
+  @media (max-width: 600px) { main { padding: 14px 12px; } header { padding-left: 12px; padding-right: 12px; } }
 </style>
 </head>
 <body>
 <header>
   <h1>🧥 Annonces Vinted</h1>
   <nav id="tabs">
-    <button data-tab="creer" class="on">Créer</button>
-    <button data-tab="historique">Historique</button>
+    <button data-tab="menu" class="on">Annonces</button>
     <button data-tab="reglages">Réglages</button>
   </nav>
   <span class="grow"></span>
 </header>
 
 <main>
-  <!-- ========== CRÉER ========== -->
-  <div id="tab-creer">
+  <!-- ========== MENU ========== -->
+  <div id="tab-menu">
+    <div class="hist-totals card" id="menuTotals"></div>
+    <div class="bad" id="menuErr"></div>
+    <div class="menu-grid" id="menuGrid"></div>
+  </div>
+
+  <!-- ========== ANNONCE (formulaire puis résultat) ========== -->
+  <div id="tab-creer" class="hidden">
+    <div class="row" style="margin-bottom:12px"><button class="btn ghost" id="backBtn">← Annonces</button></div>
     <section class="card" id="formCard">
-      <div class="row"><h2 class="grow">Nouvelle annonce</h2><button class="btn ghost hidden" id="newBtn">＋ Nouvelle annonce</button></div>
+      <div class="row"><h2 class="grow">Nouvelle annonce</h2></div>
       <div id="formBody">
         <label>Photo du produit</label>
         <input type="file" id="photo" accept="image/*">
@@ -174,13 +206,17 @@
             <button class="btn ghost" id="dlAll">Télécharger les images</button>
           </div>
           <div class="muted" id="textStatus"></div>
+          <div class="card hidden" id="avisBlock" style="margin-top:14px">
+            <h3>Ton avis sur cette annonce</h3>
+            <div class="smileys" id="smileys"><button data-s="mauvais">😞</button><button data-s="moyen">😐</button><button data-s="bien">😊</button></div>
+            <textarea id="avisText" placeholder="Un commentaire pour améliorer l'outil (facultatif)"></textarea>
+            <div class="row" style="margin-top:8px"><button class="btn" id="avisBtn">Envoyer mon avis</button><span class="muted" id="avisMsg"></span></div>
+            <p class="muted">Purement informatif, pour améliorer l'outil. Pour retoucher l'image maintenant, utilise l'ajustement à gauche.</p>
+          </div>
         </div>
       </div>
     </section>
   </div>
-
-  <!-- ========== HISTORIQUE ========== -->
-  <div id="tab-historique" class="hidden"></div>
 
   <!-- ========== RÉGLAGES ========== -->
   <div id="tab-reglages" class="hidden">
@@ -209,6 +245,8 @@
     </details>
   </div>
 </main>
+
+<div class="modal hidden" id="modal"><div class="sheet" id="sheet"></div></div>
 
 <script>
 "use strict";
@@ -260,6 +298,14 @@ function validateLabel(run, estimate) {
 
 function listingMeta(run) {
   return [run.marque && "Marque : " + run.marque, run.taille && "Taille : " + run.taille, run.mesures && "Mesures : " + run.mesures].filter(Boolean).join(" · ");
+}
+
+// Pastille d'une carte du menu : Terminé / En cours / À reprendre / Erreur.
+function badgeOf(run) {
+  if (run.statut === "termine") return { label: "Terminé", cls: "ok" };
+  if (isBusy(run)) return { label: "En cours", cls: "busy" };
+  if (run.statut === "test_erreur") return { label: "Erreur", cls: "err" };
+  return { label: "À reprendre", cls: "todo" };
 }
 
 function totalsOf(items) {
@@ -315,13 +361,29 @@ function pump() {
 function imgEl(id, cls) { const i = document.createElement("img"); if (cls) i.className = cls; i.loading = "lazy"; loadImg(i, id); return i; }
 function ph(text) { const d = document.createElement("div"); d.className = "ph"; d.textContent = text; return d; }
 
-// --- onglets
+// --- vues : menu (accueil), annonce (formulaire / résultat), réglages
+function showView(v) {
+  ["menu", "creer", "reglages"].forEach(t => $("tab-" + t).classList.toggle("hidden", t !== v));
+  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x.dataset.tab === (v === "reglages" ? "reglages" : "menu")));
+  if (v !== "creer") clearTimeout(pollTimer);
+  window.scrollTo(0, 0);
+}
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
-  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));
-  ["creer", "historique", "reglages"].forEach(t => $("tab-" + t).classList.toggle("hidden", t !== b.dataset.tab));
-  if (b.dataset.tab === "historique") loadHistory();
-  if (b.dataset.tab === "reglages") loadPrompts();
+  if (b.dataset.tab === "reglages") { showView("reglages"); loadPrompts(); return; }
+  goMenu();
 });
+function goMenu() { currentRun = null; showView("menu"); loadMenu(); }
+
+// --- fenêtre du bas (choix / confirmation)
+function openSheet(title, text, buttons) {
+  const sh = $("sheet"); sh.innerHTML = "";
+  const h = document.createElement("h3"); h.textContent = title; sh.appendChild(h);
+  if (text) { const p = document.createElement("p"); p.className = "muted"; p.textContent = text; sh.appendChild(p); }
+  buttons.forEach(b => { const x = document.createElement("button"); x.className = "btn " + (b.cls || "ghost"); x.textContent = b.label; x.onclick = () => { closeSheet(); if (b.fn) b.fn(); }; sh.appendChild(x); });
+  $("modal").classList.remove("hidden");
+}
+function closeSheet() { $("modal").classList.add("hidden"); }
+$("modal").onclick = e => { if (e.target === $("modal")) closeSheet(); };
 
 // --- configuration
 async function loadConfig() {
@@ -398,11 +460,17 @@ $("goBtn").onclick = async () => {
 };
 
 // --- écran de résultat
+function startNew() {
+  clearTimeout(pollTimer); currentRun = null;
+  $("photo").value = ""; $("photoPreview").innerHTML = "";
+  $("formCard").classList.remove("hidden"); $("formBody").classList.remove("hidden"); $("runCard").classList.add("hidden");
+  showView("creer");
+}
 async function openRun(id) {
   clearTimeout(pollTimer);
-  document.querySelector('#tabs button[data-tab="creer"]').click();
   currentRun = await api("/run?id=" + encodeURIComponent(id));
-  $("runCard").classList.remove("hidden"); $("formBody").classList.add("hidden"); $("newBtn").classList.remove("hidden");
+  $("formCard").classList.add("hidden"); $("runCard").classList.remove("hidden");
+  showView("creer");
   renderRun(true);
   schedulePoll();
 }
@@ -419,10 +487,24 @@ function schedulePoll() {
     schedulePoll();
   }, 3000);
 }
-$("newBtn").onclick = () => {
-  clearTimeout(pollTimer); currentRun = null;
-  $("runCard").classList.add("hidden"); $("formBody").classList.remove("hidden"); $("newBtn").classList.add("hidden");
+// --- quitter l'annonce : sauvegarder pour plus tard ou jeter
+$("backBtn").onclick = () => {
+  if (!currentRun || currentRun.statut === "termine") { goMenu(); return; }
+  openSheet("Quitter cette annonce ?", "Tu peux la reprendre plus tard depuis le menu, ou la jeter définitivement.", [
+    { label: "Sauvegarder pour plus tard", cls: "", fn: goMenu },
+    { label: "Jeter cette annonce", cls: "danger", fn: () => deleteRun(currentRun.run_id, true) },
+    { label: "Continuer l'annonce" }
+  ]);
 };
+function deleteRun(id, thenMenu) {
+  openSheet("Supprimer définitivement ?", "L'annonce, ses images et son texte seront supprimés (le dossier Drive part à la corbeille). Ton avis éventuel est conservé.", [
+    { label: "Oui, supprimer", cls: "danger", fn: async () => {
+      try { await postJson("/run/supprimer", { run_id: id }); toast("Annonce supprimée"); if (thenMenu) goMenu(); else loadMenu(); }
+      catch (e) { toast(e.message); }
+    } },
+    { label: "Annuler" }
+  ]);
+}
 
 function renderRun(fullReset) {
   const run = currentRun, v = viewOf(run);
@@ -447,6 +529,8 @@ function renderRun(fullReset) {
   // annonce
   $("listing").classList.toggle("hidden", !v.showListing);
   if (v.showListing) renderListing(run);
+  $("avisBlock").classList.toggle("hidden", run.statut !== "termine");
+  if (fullReset) { avisSmiley = (run.avis && run.avis.smiley) || ""; $("avisText").value = (run.avis && run.avis.commentaire) || ""; $("avisMsg").textContent = run.avis ? "Avis enregistré ✓" : ""; paintSmileys(); }
 }
 
 let mainIdx = 0;
@@ -474,6 +558,15 @@ function renderListing(run) {
   });
 }
 
+let avisSmiley = "";
+function paintSmileys() { document.querySelectorAll("#smileys button").forEach(b => b.classList.toggle("on", b.dataset.s === avisSmiley)); }
+document.querySelectorAll("#smileys button").forEach(b => b.onclick = () => { avisSmiley = b.dataset.s; paintSmileys(); });
+$("avisBtn").onclick = async () => {
+  if (!avisSmiley) { $("avisMsg").textContent = "Choisis un smiley."; return; }
+  $("avisBtn").disabled = true;
+  try { await postJson("/avis", { run_id: currentRun.run_id, smiley: avisSmiley, commentaire: $("avisText").value.trim() }); $("avisMsg").textContent = "Merci, avis enregistré ✓"; }
+  catch (e) { $("avisMsg").textContent = e.message; } finally { $("avisBtn").disabled = false; }
+};
 $("validateBtn").onclick = async () => {
   $("validateErr").textContent = ""; $("validateBtn").disabled = true;
   try { await postJson("/run/valider", { run_id: currentRun.run_id, n: currentRun.n }); currentRun = await api("/run?id=" + encodeURIComponent(currentRun.run_id)); renderRun(true); schedulePoll(); }
@@ -507,29 +600,30 @@ $("dlAll").onclick = async () => {
   }
 };
 
-// --- historique
-async function loadHistory() {
-  const box = $("tab-historique"); box.innerHTML = '<p class="muted">Chargement…</p>';
+// --- menu : cartes des annonces
+async function loadMenu() {
+  const grid = $("menuGrid"), tot = $("menuTotals"); $("menuErr").textContent = "";
+  grid.innerHTML = ""; const nw = document.createElement("div"); nw.className = "acard new"; nw.innerHTML = '<div class="plus">＋</div><div>Nouvelle annonce</div>'; nw.onclick = startNew; grid.appendChild(nw);
   try {
     const items = (await api("/runs")).items || [];
     const t = totalsOf(items);
-    box.innerHTML = "";
-    const tot = document.createElement("section"); tot.className = "card hist-totals";
+    tot.innerHTML = "";
     [["Annonces", t.runs], ["Images", t.images], ["Coût total", fmtUsd(t.cout)]].forEach(([k, v]) => { const d = document.createElement("div"); d.innerHTML = '<div class="k"></div><div class="v"></div>'; d.children[0].textContent = k; d.children[1].textContent = v; tot.appendChild(d); });
-    box.appendChild(tot);
-    if (!items.length) { const p = document.createElement("p"); p.className = "muted"; p.textContent = "Aucune annonce pour l'instant."; box.appendChild(p); return; }
     items.forEach(r => {
-      const row = document.createElement("section"); row.className = "card hist-row";
-      row.appendChild(r.miniature ? imgEl(r.miniature) : Object.assign(document.createElement("div"), { className: "mini" }));
-      const mid = document.createElement("div");
-      const h = document.createElement("b"); h.textContent = r.titre || "(sans titre)"; mid.appendChild(h);
-      const m = document.createElement("div"); m.className = "muted"; m.textContent = new Date(r.cree_le).toLocaleString("fr-FR") + " · " + r.nb_images + "/" + r.n + " images · " + r.statut + (r.erreur ? " · " + cleanErr(r.erreur) : ""); mid.appendChild(m);
-      row.appendChild(mid);
-      const c = document.createElement("div"); c.textContent = fmtUsd(r.cout_total); row.appendChild(c);
-      row.onclick = () => openRun(r.run_id).catch(e => toast(e.message));
-      box.appendChild(row);
+      const c = document.createElement("div"); c.className = "acard";
+      c.appendChild(r.miniature ? imgEl(r.miniature, "thumb") : Object.assign(document.createElement("div"), { className: "thumb", textContent: isBusy(r) ? "Génération…" : "Pas d'image" }));
+      const bd = badgeOf(r); const bg = document.createElement("span"); bg.className = "badge " + bd.cls; bg.textContent = bd.label; c.appendChild(bg);
+      const more = document.createElement("button"); more.className = "more"; more.textContent = "⋯"; more.setAttribute("aria-label", "Options");
+      more.onclick = e => { e.stopPropagation(); openSheet(r.titre || "Annonce", "", [{ label: "Supprimer", cls: "danger", fn: () => deleteRun(r.run_id, false) }, { label: "Annuler" }]); };
+      c.appendChild(more);
+      const info = document.createElement("div"); info.className = "info";
+      const h = document.createElement("b"); h.textContent = r.titre || "(sans titre)"; info.appendChild(h);
+      const m = document.createElement("div"); m.className = "muted"; m.textContent = new Date(r.cree_le).toLocaleDateString("fr-FR") + " · " + fmtUsd(r.cout_total); info.appendChild(m);
+      c.appendChild(info);
+      c.onclick = () => openRun(r.run_id).catch(e => toast(e.message));
+      grid.appendChild(c);
     });
-  } catch (e) { box.innerHTML = ""; const p = document.createElement("p"); p.className = "bad"; p.textContent = e.message; box.appendChild(p); }
+  } catch (e) { $("menuErr").textContent = e.message; }
 }
 
 // --- prompts (édition + versions)
@@ -569,8 +663,10 @@ $("setBase").value = base(); $("setSecret").value = store.get(LS.secret);
 $("setSave").onclick = () => { store.set(LS.base, $("setBase").value.trim()); store.set(LS.secret, $("setSecret").value); toast("Enregistré"); init(); };
 
 async function init() {
-  if (!store.get(LS.secret)) { document.querySelector('#tabs button[data-tab="reglages"]').click(); $("dConnexion").open = true; return; }
+  if (!store.get(LS.secret)) { showView("reglages"); $("dConnexion").open = true; return; }
+  showView("menu");
   try { await loadConfig(); await loadInspis(); } catch (e) { $("goErr").textContent = e.message; }
+  loadMenu();
 }
 init();
 </script>

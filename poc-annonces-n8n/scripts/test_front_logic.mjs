@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 const html = readFileSync(new URL("../front/index.html", import.meta.url), "utf8");
 const m = html.match(/\/\/ <logic>([\s\S]*?)\/\/ <\/logic>/);
 assert.ok(m, "bloc // <logic> introuvable dans front/index.html");
-const L = new Function(m[1] + "\nreturn { fmtUsd, isBusy, viewOf, statusLabel, validateLabel, listingMeta, totalsOf };")();
+const L = new Function(m[1] + "\nreturn { fmtUsd, isBusy, viewOf, statusLabel, validateLabel, listingMeta, totalsOf, badgeOf };")();
 
 const img = (idx, ok = true) => ({ idx, essai: 1, drive_file_id: ok ? "f" + idx : "", erreur: ok ? "" : "boom" });
 
@@ -67,4 +67,12 @@ test("listingMeta : uniquement les champs renseignés", () => {
 test("totalsOf : cumule annonces, images et coûts", () => {
   const t = L.totalsOf([{ nb_images: 3, cout_total: 0.25 }, { nb_images: 2, cout_total: 0.5 }]);
   assert.equal(t.runs, 2); assert.equal(t.images, 5); assert.ok(Math.abs(t.cout - 0.75) < 1e-9);
+});
+
+test("badgeOf : pastille du menu selon le statut", () => {
+  assert.deepEqual(L.badgeOf({ statut: "termine" }), { label: "Terminé", cls: "ok" });
+  assert.equal(L.badgeOf({ statut: "test_en_cours" }).label, "En cours");
+  assert.equal(L.badgeOf({ statut: "lot_en_cours" }).cls, "busy");
+  assert.equal(L.badgeOf({ statut: "test_pret" }).label, "À reprendre");
+  assert.equal(L.badgeOf({ statut: "test_erreur" }).label, "Erreur");
 });
