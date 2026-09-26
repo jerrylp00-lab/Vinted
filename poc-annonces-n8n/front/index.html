@@ -8,10 +8,11 @@
   :root {
     --bg: #f6f5f2; --card: #ffffff; --ink: #1d1d1b; --muted: #6b6a66; --line: #e4e2dc;
     --accent: #1f6f5c; --accent-ink: #ffffff; --warn: #b26a00; --bad: #b3261e; --good: #1f7a3d; --chip: #eeece6;
+    --vinted: #007782;
   }
   @media (prefers-color-scheme: dark) {
     :root { --bg: #141413; --card: #1e1e1c; --ink: #f0eee8; --muted: #a09e97; --line: #33322f;
-      --accent: #4fb89d; --accent-ink: #0d1f1a; --warn: #e0a14a; --bad: #f2867f; --good: #6cc98b; --chip: #2a2927; }
+      --accent: #4fb89d; --accent-ink: #0d1f1a; --warn: #e0a14a; --bad: #f2867f; --good: #6cc98b; --chip: #2a2927; --vinted: #4cc3cf; }
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -21,82 +22,60 @@
   nav button { background: none; border: 0; padding: 8px 14px; border-radius: 8px; color: var(--muted); font: inherit; cursor: pointer; }
   nav button.on { background: var(--chip); color: var(--ink); font-weight: 600; }
   .grow { flex: 1; }
-  main { max-width: 1100px; margin: 0 auto; padding: 20px; }
-  section.card, .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  main { max-width: 1000px; margin: 0 auto; padding: 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
   h2 { font-size: 16px; margin: 0 0 12px; }
   h3 { font-size: 14px; margin: 0 0 6px; }
   label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
-  input[type=text], input[type=password], select, textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font: inherit; }
+  input[type=text], input[type=password], input[type=number], select, textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font: inherit; }
   textarea { min-height: 70px; resize: vertical; }
   button.btn { background: var(--accent); color: var(--accent-ink); border: 0; padding: 9px 16px; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer; }
   button.btn.ghost { background: var(--chip); color: var(--ink); font-weight: 500; }
   button.btn:disabled { opacity: .5; cursor: default; }
   .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-  .row > .grow { flex: 1; min-width: 160px; }
+  .row > .grow { flex: 1; min-width: 150px; }
   .muted { color: var(--muted); font-size: 13px; }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
-  .chip { background: var(--chip); border: 1px solid transparent; border-radius: 999px; padding: 3px 10px; font-size: 12.5px; cursor: pointer; user-select: none; }
-  .chip.on { background: var(--accent); color: var(--accent-ink); }
-  .chip.static { cursor: default; }
-  .thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
-  .thumbs img { height: 110px; border-radius: 8px; border: 1px solid var(--line); object-fit: cover; }
+  .bad { color: var(--bad); font-size: 13px; }
+  .good { color: var(--good); font-size: 13px; }
+  .warn { color: var(--warn); font-size: 13px; }
+  .hidden { display: none !important; }
   .status { display: inline-flex; gap: 8px; align-items: center; padding: 4px 12px; border-radius: 999px; background: var(--chip); font-size: 13px; }
   .status.busy::before { content: ""; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--muted); border-top-color: transparent; animation: spin 0.9s linear infinite; }
   .status.err { color: var(--bad); }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .desc { white-space: pre-wrap; }
-  .warn { color: var(--warn); font-size: 13px; }
-  .bad { color: var(--bad); font-size: 13px; }
-  .good { color: var(--good); font-size: 13px; }
-  .plans { display: grid; grid-template-columns: 1fr; gap: 14px; }
-  .plan .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 760px; }
-  .plan .pair figure { margin: 0; }
-  .plan .pair figcaption { font-size: 12px; color: var(--muted); margin-top: 4px; }
-  .plan img.shot, .plan img.orig, .hist-shots img.shot { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); background: var(--chip); display: block; }
-  .plan .ph, .hist-shots .ph { width: 100%; aspect-ratio: 3/4; border-radius: 10px; background: var(--chip); display: grid; place-items: center; color: var(--muted); font-size: 13px; text-align: center; padding: 10px; }
-  .grid-inspi { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; margin-top: 8px; }
-  .grid-inspi .item { padding: 8px; margin: 0; border: 2px solid var(--line); }
-  .grid-inspi .item.vision { border-color: var(--accent); }
-  .grid-inspi .item.texte { border-color: var(--warn); }
-  .grid-inspi img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 8px; background: var(--chip); display: block; }
-  .grid-inspi .chips .chip { font-size: 11px; padding: 1px 7px; }
-  .seg { display: flex; gap: 4px; margin-top: 6px; }
-  .seg button { flex: 1; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 8px; padding: 4px 6px; font: inherit; font-size: 12.5px; cursor: pointer; }
-  .seg button.on.v { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
-  .seg button.on.t { background: var(--warn); color: #fff; border-color: var(--warn); }
-  .linkbtn { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-size: 12.5px; cursor: pointer; text-decoration: underline; margin-top: 6px; }
-  .review { margin-top: 16px; padding: 14px; border: 2px solid var(--accent); border-radius: 12px; }
-  .review .thumbs img { height: 150px; }
-  .plan .bar { display: flex; gap: 8px; align-items: center; margin: 8px 0 4px; flex-wrap: wrap; }
-  .thumb-btn { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 3px 9px; cursor: pointer; font-size: 16px; }
-  .thumb-btn.on { border-color: var(--accent); background: var(--chip); }
-  .lib { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
-  .lib .item { padding: 10px; margin: 0; }
-  .lib .item.off { opacity: .55; }
-  .lib img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 8px; background: var(--chip); display: block; }
-  .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; z-index: 20; max-width: 90vw; }
-  dialog { border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); padding: 20px; max-width: 460px; width: 92vw; }
-  dialog::backdrop { background: rgba(0,0,0,.4); }
-  .hidden { display: none !important; }
-  small.k { font-family: ui-monospace, monospace; }
-  .stepper { display: flex; gap: 8px; margin: 0 0 16px; flex-wrap: wrap; }
-  .step { flex: 1; min-width: 140px; display: flex; gap: 8px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--muted); }
-  .step .n { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--chip); font-size: 12px; font-weight: 600; }
-  .step.active { color: var(--ink); border-color: var(--accent); font-weight: 600; }
-  .step.active .n { background: var(--accent); color: var(--accent-ink); }
-  .step.done { color: var(--ink); }
-  .step.done .n { background: var(--good); color: #fff; }
-  #journal { font: 12.5px/1.6 ui-monospace, monospace; color: var(--muted); max-height: 190px; overflow: auto; }
-  #journal .l.err { color: var(--bad); }
-  #journal .l.ok { color: var(--muted); }
-  #journal .l:last-child { color: var(--ink); }
-  details.card > summary { cursor: pointer; font-weight: 600; font-size: 16px; }
-  details.card[open] > summary { margin-bottom: 12px; }
+  .thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+  .thumbs img { height: 110px; border-radius: 8px; border: 1px solid var(--line); object-fit: cover; }
+  .inspis { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin-top: 8px; }
+  .inspis .it { border: 2px solid var(--line); border-radius: 10px; padding: 3px; cursor: pointer; background: var(--bg); }
+  .inspis .it.sel { border-color: var(--accent); }
+  .inspis img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 7px; display: block; background: var(--chip); }
+  .test-img { width: 100%; max-width: 360px; aspect-ratio: 3/4; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); background: var(--chip); display: block; }
+  .ph { width: 100%; aspect-ratio: 3/4; border-radius: 10px; background: var(--chip); display: grid; place-items: center; color: var(--muted); font-size: 13px; text-align: center; padding: 10px; }
+  .review { margin-top: 12px; padding: 14px; border: 2px solid var(--accent); border-radius: 12px; }
+  /* aperçu façon annonce Vinted */
+  .vinted { max-width: 420px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .vinted .seller { display: flex; gap: 10px; align-items: center; padding: 10px 12px; font-size: 14px; }
+  .vinted .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--vinted); color: #fff; display: grid; place-items: center; font-weight: 600; }
+  .vinted .main img, .vinted .main .ph { width: 100%; aspect-ratio: 3/4; object-fit: cover; display: block; border-radius: 0; background: var(--chip); }
+  .vinted .strip { display: flex; gap: 6px; padding: 8px 12px; overflow-x: auto; }
+  .vinted .strip img, .vinted .strip .mini { width: 56px; height: 74px; object-fit: cover; border-radius: 6px; border: 2px solid transparent; cursor: pointer; flex: none; background: var(--chip); }
+  .vinted .strip img.on { border-color: var(--vinted); }
+  .vinted .body { padding: 4px 12px 14px; }
+  .vinted input.t { font-size: 17px; font-weight: 650; border: 1px solid transparent; background: transparent; padding: 4px 0; }
+  .vinted input.t:focus, .vinted textarea.d:focus { border-color: var(--line); background: var(--bg); padding: 4px 6px; }
+  .vinted textarea.d { border: 1px solid transparent; background: transparent; padding: 4px 0; min-height: 130px; }
+  .vinted .meta { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
   .hist-row { display: grid; grid-template-columns: 64px 1fr auto; gap: 12px; align-items: center; cursor: pointer; }
-  .hist-row img { width: 64px; height: 84px; object-fit: cover; border-radius: 8px; background: var(--chip); }
+  .hist-row img, .hist-row .mini { width: 64px; height: 84px; object-fit: cover; border-radius: 8px; background: var(--chip); }
   .hist-totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
   .hist-totals .k { font-size: 12px; color: var(--muted); }
   .hist-totals .v { font-size: 20px; font-weight: 650; }
+  .versions .v { border-top: 1px solid var(--line); padding: 8px 0; }
+  .versions pre { white-space: pre-wrap; font: 12.5px/1.5 ui-monospace, monospace; background: var(--bg); padding: 8px; border-radius: 8px; max-height: 220px; overflow: auto; }
+  .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; z-index: 20; max-width: 90vw; }
+  details.card > summary { cursor: pointer; font-weight: 600; font-size: 16px; }
+  details.card[open] > summary { margin-bottom: 12px; }
+  .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; align-items: start; }
 </style>
 </head>
 <body>
@@ -116,107 +95,85 @@
 <main>
   <!-- ========== CRÉER ========== -->
   <div id="tab-creer">
-    <div class="stepper" id="stepper">
-      <div class="step active" data-step="1"><span class="n">1</span> Annonce</div>
-      <div class="step" data-step="2"><span class="n">2</span> Inspirations</div>
-      <div class="step" data-step="3"><span class="n">3</span> Photos de l'annonce</div>
-    </div>
-    <div class="row hidden" id="newBar" style="margin-bottom:12px"><button class="btn ghost" id="newBtn">＋ Nouvelle annonce</button><span class="muted" id="jobRef"></span></div>
-    <section class="card" id="stepForm">
-      <h2>Annonce</h2>
-      <input type="file" id="photos" accept="image/*" multiple>
-      <div class="thumbs" id="photoPreview"></div>
-      <div class="row">
-        <div class="grow"><label>Genre</label><select id="genre"></select></div>
-        <div class="grow"><label>Type de vêtement</label><input type="text" id="type" list="typeList" placeholder="jupe, veste, sac…"><datalist id="typeList"></datalist></div>
-      </div>
-      <div class="row">
-        <div class="grow"><label>Marque</label><input type="text" id="marque" placeholder="ex. Zara"></div>
-        <div class="grow"><label>Taille</label><input type="text" id="taille" placeholder="ex. M, 38"></div>
-        <div class="grow"><label>Prix (€)</label><input type="text" id="prix" placeholder="ex. 15"></div>
-      </div>
-      <div class="row">
-        <div class="grow"><label>Mesures</label><input type="text" id="mesures" placeholder="ex. poitrine 50 cm, longueur 62 cm"></div>
-        <div class="grow"><label>État</label><input type="text" id="etat" list="etatList" placeholder="ex. très bon état"><datalist id="etatList"><option value="neuf avec étiquette"><option value="neuf sans étiquette"><option value="très bon état"><option value="bon état"><option value="satisfaisant"></datalist></div>
-      </div>
-      <label style="color:var(--ink)"><input type="checkbox" id="texteVisible"> Le vêtement porte du texte ou un logo lisible <span class="muted">(la photo portée sera prise sans miroir, pour ne pas l'inverser)</span></label>
-      <div class="row" style="margin-top:14px"><button class="btn" id="createBtn">Créer l'annonce</button><span class="muted" id="createMsg"></span></div>
-    </section>
-    <section class="card hidden" id="stepText">
-      <div class="row"><h2 class="grow">Annonce</h2><span class="status" id="jobStatus"></span></div>
-      <div id="jobError" class="bad"></div>
-      <div class="row hidden" id="retryTextBar"><button class="btn" id="retryTextBtn">Réessayer</button></div>
-      <div id="textBlock" class="hidden">
-        <h3 id="titre"></h3>
-        <p class="desc" id="desc"></p>
+    <section class="card" id="formCard">
+      <div class="row"><h2 class="grow">Nouvelle annonce</h2><button class="btn ghost hidden" id="newBtn">＋ Nouvelle annonce</button></div>
+      <div id="formBody">
+        <label>Photo du produit</label>
+        <input type="file" id="photo" accept="image/*">
+        <div class="thumbs" id="photoPreview"></div>
+
+        <label>Inspiration <span class="muted">(la photo d'ambiance : lieu, lumière, cadrage, pose)</span></label>
+        <div class="inspis" id="inspis"></div>
+        <div class="row" style="margin-top:8px">
+          <input type="file" id="inspiFile" accept="image/*" style="width:auto">
+          <button class="btn ghost" id="inspiUp">Ajouter cette inspiration</button>
+          <span class="muted" id="inspiMsg"></span>
+        </div>
+
+        <label>Mannequin <span class="muted">(modifiable ; ta modification est mémorisée pour les prochains runs)</span></label>
+        <textarea id="mannequin"></textarea>
+
         <div class="row">
-          <button class="btn ghost" id="copyTitle">Copier le titre</button>
-          <button class="btn ghost" id="copyDesc">Copier la description</button>
+          <div class="grow"><label>Pose <span class="muted">(vide = celle de l'inspiration)</span></label><input type="text" id="pose" placeholder="ex. main dans la poche, regard vers le bas"></div>
+          <div class="grow"><label>Autres indications</label><input type="text" id="notes" placeholder="ex. lumière plus chaude"></div>
         </div>
-        <label>Un changement à demander ?</label>
-        <textarea id="feedbackText" placeholder="Ex. : c'est de la viscose, ton plus sobre, mentionne la coupe"></textarea>
-        <div class="row" style="margin-top:8px">
-          <button class="btn ghost" id="refineBtn">Mettre à jour le texte</button>
-          <button class="linkbtn" id="garmentToggle">Modifier la description du vêtement pour les photos</button>
-          <span class="grow"></span>
-          <button class="btn" id="styleBtn">Choisir les inspirations →</button>
+        <div class="row">
+          <div class="grow"><label>Taille</label><input type="text" id="taille" placeholder="ex. M, 38"></div>
+          <div class="grow"><label>Marque</label><input type="text" id="marque" placeholder="ex. Zara"></div>
+          <div class="grow"><label>Mesures</label><input type="text" id="mesures" placeholder="ex. poitrine 50 cm, longueur 62 cm"></div>
+          <div style="width:110px"><label>Images (N)</label><input type="number" id="nImg" min="1" max="6" value="3"></div>
         </div>
-        <div id="garmentBox" class="hidden">
-          <label>Description du vêtement pour les photos <span class="muted">(anglais, modifiable)</span></label>
-          <textarea id="garmentEn"></textarea>
+        <div class="row" style="margin-top:14px">
+          <button class="btn" id="goBtn">Générer l'image test</button>
+          <span class="muted" id="goHint"></span>
+        </div>
+        <div class="bad" id="goErr"></div>
+      </div>
+    </section>
+
+    <section class="card hidden" id="runCard">
+      <div class="row"><h2 class="grow" id="runTitle">Résultat</h2><span class="status" id="runStatus"></span></div>
+      <p class="muted" id="runCost"></p>
+      <div class="bad" id="runErr"></div>
+      <div class="two">
+        <div>
+          <div id="testBlock" class="hidden">
+            <h3>Image test</h3>
+            <div id="testImg"></div>
+            <div id="validateBar" class="review hidden">
+              <b>Cette image te convient ?</b>
+              <div class="row" style="margin-top:8px"><button class="btn" id="validateBtn"></button></div>
+              <div class="bad" id="validateErr"></div>
+            </div>
+          </div>
+          <div id="fbBlock" class="hidden">
+            <label id="fbLabel">Un ajustement à demander ? <span class="muted">(général : « un peu moins foncé »…)</span></label>
+            <textarea id="fbText" placeholder="ex. un peu moins foncé, plus de lumière"></textarea>
+            <div class="row" style="margin-top:8px"><button class="btn ghost" id="fbBtn">Regénérer l'image test avec ce feedback</button><span class="muted" id="fbHint"></span></div>
+            <div class="bad" id="fbErr"></div>
+          </div>
+        </div>
+        <div id="listing" class="hidden">
+          <h3>Aperçu de l'annonce</h3>
+          <div class="vinted">
+            <div class="seller"><div class="avatar" id="avatar">J</div><div><b id="sellerName"></b><div class="meta">Aperçu</div></div></div>
+            <div class="main" id="mainImg"></div>
+            <div class="strip" id="strip"></div>
+            <div class="body">
+              <input type="text" class="t" id="lTitre" placeholder="Titre">
+              <div class="meta" id="lMeta"></div>
+              <textarea class="d" id="lDesc" placeholder="Description"></textarea>
+            </div>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <button class="btn" id="copyAll">Copier le texte</button>
+            <button class="btn ghost" id="regenText">Régénérer le texte</button>
+            <button class="btn ghost" id="dlAll">Télécharger les images</button>
+          </div>
+          <div class="muted" id="textStatus"></div>
         </div>
       </div>
     </section>
-    <section class="card hidden" id="stepInspi">
-      <div class="row"><h2 class="grow">Inspirations</h2><span class="status" id="inspiStatus"></span></div>
-      <div id="inspiError" class="bad"></div>
-      <div class="row hidden" id="retryStyleBar"><button class="btn" id="retryStyleBtn">Réessayer</button></div>
-      <div id="warnings" class="warn"></div>
-      <p class="muted">Filtre par ambiance (plusieurs possibles ; aucun = toute la bibliothèque). Choisis 1 photo <b style="color:var(--accent)">principale</b> (vue par le générateur : elle définit le décor, la lumière et la palette) et jusqu'à 3 <b style="color:var(--warn)">secondaires</b> (seule leur description est utilisée, pour reprendre des éléments).</p>
-      <div class="chips" id="moodChips"></div>
-      <div class="row"><span class="muted grow" id="gridCount"></span><span class="muted" id="selCount"></span></div>
-      <div class="grid-inspi" id="styleGrid"></div>
-      <div class="row" style="margin-top:10px">
-        <label style="margin:0">Ajouter une inspiration à la bibliothèque et à cette annonce</label>
-        <input type="file" id="ficheUpFiles" accept="image/*" multiple style="width:auto">
-        <button class="btn ghost" id="ficheUpBtn">Envoyer</button><span class="muted" id="ficheUpMsg"></span>
-      </div>
-      <div class="row" style="margin-top:10px"><button class="linkbtn" id="mannToggle">Modifier la description du mannequin (photo portée)</button></div>
-      <div id="mannBox" class="hidden"><textarea id="mannequinDesc"></textarea></div>
-      <div class="row" style="margin-top:14px">
-        <button class="btn ghost" id="rerollBtn">Revenir à la proposition</button>
-        <span class="grow"></span>
-        <span class="muted">≈ 0,08 $ pour la première photo</span>
-        <button class="btn" id="validateBtn">Générer la première photo</button>
-      </div>
-    </section>
-    <section class="card hidden" id="stepPhotos">
-      <div class="row"><h2 class="grow">Photos de l'annonce</h2><span class="status" id="gStatus"></span></div>
-      <p class="muted" id="gCost"></p>
-      <div id="gError" class="bad"></div>
-      <div id="firstBar" class="hidden review">
-        <b>Cette première photo te convient ?</b>
-        <div class="row" style="margin-top:8px">
-          <button class="btn" id="nextBtn">Valider, générer les 2 autres (~0,16 $)</button>
-          <span class="muted">Sinon utilise « Refaire cette photo » sous la photo (~0,08 $).</span>
-        </div>
-      </div>
-      <div class="plans" id="plans"></div>
-      <div id="finalBlock" class="hidden" style="margin-top:16px">
-        <h3 id="gTitle"></h3>
-        <p class="desc" id="gDesc"></p>
-        <div class="row"><button class="btn ghost" id="gCopyTitle">Copier le titre</button><button class="btn ghost" id="gCopyDesc">Copier la description</button></div>
-        <div class="card" style="margin-top:14px">
-          <h2>Note finale</h2>
-          <div class="row"><span id="globalRating"></span></div>
-          <div class="chips" id="globalReasons"></div>
-          <label>Commentaire</label>
-          <textarea id="globalComment" placeholder="Qu'est-ce qui a marché, qu'est-ce qui a raté ?"></textarea>
-          <div class="row" style="margin-top:8px"><button class="btn" id="globalSend">Envoyer la note finale</button><span class="muted" id="globalMsg"></span></div>
-        </div>
-      </div>
-    </section>
-    <section class="card hidden" id="journalCard"><h3>Suivi</h3><div id="journal"></div></section>
   </div>
 
   <!-- ========== HISTORIQUE ========== -->
@@ -226,62 +183,26 @@
   <div id="tab-reglages" class="hidden">
     <details class="card" id="dConnexion">
       <summary>Connexion</summary>
-      <label>URL des webhooks n8n</label>
+      <label>URL des webhooks n8n (V4)</label>
       <input type="text" id="setBase">
       <label>Secret (en-tête X-VFN-Secret)</label>
       <input type="password" id="setSecret" autocomplete="off">
       <p class="muted">Le secret est gardé dans ce navigateur uniquement (localStorage).</p>
       <div class="row" style="margin-top:14px"><button class="btn" id="setSave">Enregistrer</button></div>
     </details>
-    <details class="card" id="dProfil">
-      <summary>Profil de rédaction</summary>
-      <p class="muted">Profil de <b id="profUser"></b></p>
-      <section class="card">
-        <p class="muted">Ces préférences sont ajoutées au prompt qui rédige tes descriptions (courtes puces, environ 300 tokens maximum). Les annonces que tu notes 👍 à la fin servent d'exemples de style (2 au plus, du même genre et type) pour les prochaines annonces.</p>
-        <textarea id="profText" style="min-height:150px" placeholder="- Toujours mentionner la matière et la taille&#10;- Ton sobre, pas de superlatifs"></textarea>
-        <div class="row"><span class="muted" id="profCount"></span><span class="grow"></span>
-          <button class="btn ghost" id="profPropose">Proposer une mise à jour depuis mes retours</button>
-          <button class="btn" id="profSave">Enregistrer</button></div>
-        <p class="muted" id="profMsg"></p>
-      </section>
-      <div id="profProposal" class="card hidden"></div>
-    </details>
-    <details class="card" id="dBiblio">
-      <summary>Bibliothèque d'inspirations</summary>
-      <section class="card">
-        <h2>Ajouter des inspirations</h2>
-        <div class="row">
-          <div class="grow"><label>Genre</label><select id="upGenre"></select></div>
-          <div class="grow"><label>Type de vêtement</label><input type="text" id="upType" list="typeList" placeholder="jupe, veste…"></div>
-        </div>
-        <label>Photos</label><input type="file" id="upFiles" accept="image/*" multiple>
-        <div class="row" style="margin-top:10px"><button class="btn" id="upBtn">Ajouter et indexer</button><span class="muted" id="upMsg"></span></div>
-      </section>
-      <section class="card">
-        <div class="row">
-          <div class="grow"><label style="margin:0">Genre</label><select id="fGenre"></select></div>
-          <div class="grow"><label style="margin:0">Type</label><select id="fType"></select></div>
-          <div class="grow"><label style="margin:0">Mood</label><select id="fMood"></select></div>
-          <label class="muted" style="margin:0"><input type="checkbox" id="fActive"> actives seulement</label>
-          <button class="btn ghost" id="libReload">Recharger</button>
-        </div>
-        <p class="muted" id="libCount"></p>
-      </section>
-      <div class="lib" id="lib"></div>
+    <details class="card" open id="dMannequin">
+      <summary>Mannequin par défaut</summary>
+      <textarea id="mannDefault"></textarea>
+      <div class="row" style="margin-top:8px"><button class="btn" id="mannSave">Enregistrer</button><span class="muted" id="mannMsg"></span></div>
     </details>
     <details class="card" id="dPrompts">
-      <summary>Prompts</summary>
-      <p class="muted">Modifier un prompt change immédiatement les prochaines générations, et on peut toujours revenir à une version précédente. À ne toucher que si tu sais ce que tu fais.</p>
-      <section class="card">
-        <div class="row">
-          <div class="grow"><label style="margin:0">Prompt</label><select id="pName"></select></div>
-          <div><label style="margin:0">Période (jours)</label><input type="text" id="pDays" value="30" style="width:80px"></div>
-          <button class="btn" id="pPropose">Proposer un ajustement</button>
-        </div>
-        <p class="muted" id="pMsg"></p>
-      </section>
-      <div id="pProposal" class="card hidden"></div>
-      <div id="pVersions"></div>
+      <summary>Prompts (image, texte)</summary>
+      <p class="muted">Modifier un prompt change immédiatement les prochaines générations ; chaque enregistrement crée une version, et on peut revenir à une version précédente. Variables du prompt image : {mannequin}, {pose}, {notes}, {feedback} (une ligne dont la variable est vide est retirée).</p>
+      <div id="promptBox"></div>
+    </details>
+    <details class="card" id="dInfos">
+      <summary>Coûts</summary>
+      <p class="muted" id="costInfo"></p>
     </details>
   </div>
 </main>
@@ -289,768 +210,370 @@
 <script>
 "use strict";
 // <logic>
-const PLAN_ORDER = ["porte_miroir", "cintre", "detail"];
-const PLAN_LABELS = { porte_miroir: "Porté", cintre: "Sur cintre", detail: "Détail" };
-const cleanErr = m => String(m || "").replace(/^(Texte|Style|Photos) : /, "");
+const fmtUsd = n => Number(n || 0).toFixed(2).replace(".", ",") + " $";
 
-function stepOf(j) {
-  if (!j) return 1;
-  const s = j.statut;
-  if (s === "texte_en_cours" || s === "texte_pret") return 1;
-  if (s === "selection_en_cours" || s === "en_attente_validation") return 2;
-  if (["generation_en_cours", "premiere_prete", "galerie_prete", "budget_depasse", "termine"].includes(s)) return 3;
-  if (s === "erreur") return /^Style/.test(j.erreur || "") && j.titre ? 2 : 1;
-  return 1;
+function isBusy(run) {
+  if (!run) return false;
+  const s = run.statut;
+  return s === "test_en_cours" || s === "lot_en_cours";
 }
 
-function moodUnion(items, selectedIds) {
-  const count = new Map();
-  for (const id of selectedIds) {
-    const it = items.find(i => i.drive_file_id === id);
-    for (const m of (it && it.moods) || []) count.set(m, (count.get(m) || 0) + 1);
+function cleanErr(m) { return String(m || "").replace(/^(Texte|Fal|OpenRouter) : /, "$1 : "); }
+
+// Vue de l'écran de résultat selon le statut du run.
+function viewOf(run) {
+  const s = run.statut;
+  const imgs = run.images || [];
+  const test = imgs.find(i => i.idx === 0) || null;
+  const testOk = !!(test && test.drive_file_id);
+  const lot = imgs.filter(i => i.idx > 0);
+  return {
+    showTest: s === "test_en_cours" || s === "test_pret" || s === "test_erreur",
+    canValidate: s === "test_pret" && testOk,
+    canFeedback: s === "test_pret" || s === "test_erreur" || s === "termine",
+    showListing: s === "lot_en_cours" || s === "termine",
+    lotDone: lot.filter(i => i.drive_file_id).length,
+    lotExpected: Math.max(0, Number(run.n || 1) - 1),
+    testOk
+  };
+}
+
+function statusLabel(run) {
+  const v = viewOf(run);
+  switch (run.statut) {
+    case "test_en_cours": return "Génération de l'image test…";
+    case "test_pret": return "Image test prête : à toi de valider";
+    case "test_erreur": return "L'image test a échoué";
+    case "lot_en_cours": return "Génération des images (" + v.lotDone + "/" + v.lotExpected + ") et du texte…";
+    case "termine": return "Annonce prête ✓";
+    default: return run.statut || "";
   }
-  return [...count.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(e => e[0]);
 }
 
-function filterByMoods(items, moods) {
-  return items.filter(i => i.actif && (!moods.length || (i.moods || []).some(m => moods.includes(m))));
+function validateLabel(run, estimate) {
+  const rest = Math.max(0, Number(run.n || 1) - 1);
+  return rest > 0 ? "Valider et générer les " + rest + " autres (≈ " + fmtUsd(rest * estimate) + ")" : "Valider et rédiger le texte";
 }
 
-function journalLines(prev, cur, opts) {
-  const out = [], add = (text, kind) => out.push({ text, kind: kind || "info" });
-  const same = !!prev && prev.job_id === cur.job_id;
-  const was = same ? prev.statut : null, now = cur.statut;
-  const isReady = p => p.statut === "pret";
-  for (const p of cur.plans || []) {
-    if (!same) break;                       // au rechargement d'une fiche on ne rejoue pas chaque photo
-    const before = (prev.plans || []).find(x => x.plan === p.plan) || {};
-    const n = PLAN_ORDER.indexOf(p.plan) + 1;
-    if (isReady(p) && !(isReady(before) && before.tentative === p.tentative)) add("Photo « " + PLAN_LABELS[p.plan] + " » prête (" + n + "/3) ✓ " + Number(p.cout_plan || 0).toFixed(2) + " $", "ok");
-    else if (p.statut === "erreur" && !(before.statut === "erreur" && before.erreur === p.erreur)) add("⚠ Photo « " + PLAN_LABELS[p.plan] + " » : " + cleanErr(p.erreur), "err");
-  }
-  if (now !== was) {
-    const ready = (cur.plans || []).filter(isReady).length;
-    if (now === "texte_en_cours") add("Lecture des photos…");
-    else if (now === "texte_pret") add("Annonce prête ✓", "ok");
-    else if (now === "selection_en_cours") add("Recherche des inspirations dans la bibliothèque…");
-    else if (now === "en_attente_validation") add("Inspirations proposées : à toi de choisir ✓", "ok");
-    else if (now === "generation_en_cours") add(ready === 0 ? "Génération de la photo portée (1/3)…" : ready === 1 ? (was === "premiere_prete" && !(opts && opts.suiteAsked) ? "Nouvelle tentative de la photo portée…" : "Génération des photos 2/3 et 3/3…") : ready >= 3 ? "Régénération d'une photo…" : "Nouvelle tentative…");
-    else if (now === "premiere_prete") add("Première photo prête : à toi de la valider.", "ok");
-    else if (now === "galerie_prete") add("Les 3 photos sont prêtes ✓ (coût total " + Number(cur.cout_total || 0).toFixed(2) + " $)", "ok");
-    else if (now === "budget_depasse") add("Plafond de coût atteint.", "err");
-    else if (now === "termine") add("Annonce clôturée. Merci !", "ok");
-  }
-  if (cur.erreur && (!same || prev.erreur !== cur.erreur)) add("⚠ " + cur.erreur, "err");
-  return out;
+function listingMeta(run) {
+  return [run.marque && "Marque : " + run.marque, run.taille && "Taille : " + run.taille, run.mesures && "Mesures : " + run.mesures].filter(Boolean).join(" · ");
 }
 
-function summarize(jobs, days, now) {
-  const since = days ? now - days * 86400000 : 0;
-  const list = jobs.filter(j => new Date(j.created_at).getTime() >= since);
-  const sum = k => list.reduce((a, j) => a + Number(j[k] || 0), 0);
-  return { fiches: list.length, images: sum("nb_images"), regenerations: sum("nb_regenerations"),
-    cout_texte: sum("cout_texte"), cout_images: sum("cout_images"), cout_total: sum("cout_total"), list };
+function totalsOf(items) {
+  return items.reduce((a, r) => ({ runs: a.runs + 1, images: a.images + Number(r.nb_images || 0), cout: a.cout + Number(r.cout_total || 0) }), { runs: 0, images: 0, cout: 0 });
 }
 // </logic>
-const DEFAULT_BASE = "https://178-105-102-54.sslip.io/webhook/vfn";
-const MAX_VISION = 1, MAX_TEXTE = 3;
-const STATUS_LABELS = {
-  texte_en_cours: "Rédaction de l'annonce…", texte_pret: "Annonce prête", selection_en_cours: "Recherche des inspirations…",
-  en_attente_validation: "À toi de choisir les inspirations", generation_en_cours: "Génération des photos…",
-  premiere_prete: "Première photo prête", galerie_prete: "Photos prêtes", budget_depasse: "Plafond de coût atteint", termine: "Terminée", erreur: "Erreur"
-};
-const BUSY = ["texte_en_cours", "selection_en_cours", "generation_en_cours"];
 
-const $ = (s, root = document) => root.querySelector(s);
-const store = { get: k => localStorage.getItem("vfn_" + k), set: (k, v) => localStorage.setItem("vfn_" + k, v) };
-function h(tag, attrs, ...kids) {
-  const e = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs || {})) {
-    if (k === "class") e.className = v; else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v);
-  }
-  for (const c of kids.flat()) if (c != null) e.append(c.nodeType ? c : document.createTextNode(c));
-  return e;
-}
-function toast(msg, ms = 3500) {
-  const t = h("div", { class: "toast" }, msg); document.body.append(t); setTimeout(() => t.remove(), ms);
-}
-const base = () => (store.get("base") || DEFAULT_BASE).replace(/\/$/, "");
-const authHeaders = () => ({ "X-VFN-Secret": store.get("secret") || "" });
+const $ = id => document.getElementById(id);
+const DEFAULT_BASE = "https://178-105-102-54.sslip.io/webhook/vfn4";
+const LS = { base: "vfn4_base", secret: "vfn4_secret", user: "vfn4_user" };
+const store = { get: k => { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
+const base = () => (store.get(LS.base) || DEFAULT_BASE).replace(/\/+$/, "");
+const baseV3 = () => base().replace(/\/vfn4$/, "/vfn");
+const authHeaders = () => ({ "X-VFN-Secret": store.get(LS.secret) });
 
-async function api(method, path, body) {
-  const opts = { method, headers: authHeaders() };
-  if (body instanceof FormData) opts.body = body;
-  else if (body) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
+let cfg = null, inspis = [], selectedInspi = "", currentRun = null, pollTimer = null, textWatch = null, lastMannequin = "";
+
+function toast(msg) {
+  const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+async function api(path, opts, root) {
+  opts = opts || {};
+  const headers = Object.assign({}, authHeaders(), opts.headers || {});
   let r;
-  try { r = await fetch(base() + path, opts); } catch (e) { throw new Error("Réseau : " + e.message); }
-  const text = await r.text();
-  let data = text; try { data = JSON.parse(text); } catch (e) { /* texte brut */ }
-  if (!r.ok) {
-    const err = new Error((data && data.error) || ("HTTP " + r.status)); err.status = r.status; err.data = data;
-    if (r.status === 403) err.message = "Secret refusé : vérifie les Réglages";
-    throw err;
-  }
+  try { r = await fetch((root || base()) + path, Object.assign({}, opts, { headers })); } catch (e) { throw new Error("Réseau : " + e.message); }
+  const txt = await r.text();
+  let data = null; try { data = txt ? JSON.parse(txt) : null; } catch (e) {}
+  if (!r.ok) throw new Error((data && (data.erreur || data.message)) || ("HTTP " + r.status));
   return data;
 }
+const postJson = (path, body, root) => api(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }, root);
 
-// ---------- images (fichiers Drive privés : récupérés avec l'en-tête secret) ----------
+// --- images Drive (privées) : récupérées avec l'en-tête secret, affichées via des URL locales
 const imgCache = new Map();
 let imgActive = 0; const imgQueue = [];
-function pumpImages() {
+function fetchBlob(id, full) {
+  return fetch(base() + "/image?id=" + encodeURIComponent(id) + (full ? "&full=1" : ""), { headers: authHeaders() }).then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.blob(); });
+}
+function loadImg(el, id) {
+  if (!id) return;
+  if (imgCache.has(id)) { el.src = imgCache.get(id); return; }
+  imgQueue.push({ el, id }); pump();
+}
+function pump() {
   while (imgActive < 3 && imgQueue.length) {
-    const job = imgQueue.shift(); imgActive++;
-    fetch(base() + "/image?id=" + encodeURIComponent(job.id), { headers: authHeaders() })
-      .then(r => { if (!r.ok) throw new Error(r.status); return r.blob(); })
-      .then(b => job.resolve(URL.createObjectURL(b))).catch(e => job.reject(e))
-      .finally(() => { imgActive--; pumpImages(); });
+    const { el, id } = imgQueue.shift(); imgActive++;
+    (imgCache.has(id) ? Promise.resolve(imgCache.get(id)) : fetchBlob(id, false).then(b => { const u = URL.createObjectURL(b); imgCache.set(id, u); return u; }))
+      .then(u => { el.src = u; }).catch(() => { el.alt = "image indisponible"; }).finally(() => { imgActive--; pump(); });
   }
 }
-function imageUrl(id) {
-  if (!imgCache.has(id)) {
-    const p = new Promise((resolve, reject) => { imgQueue.push({ id, resolve, reject }); pumpImages(); });
-    p.catch(() => imgCache.delete(id));  // un échec (ex. photo pas encore indexée) pourra être retenté
-    imgCache.set(id, p);
-  }
-  return imgCache.get(id);
-}
+function imgEl(id, cls) { const i = document.createElement("img"); if (cls) i.className = cls; i.loading = "lazy"; loadImg(i, id); return i; }
+function ph(text) { const d = document.createElement("div"); d.className = "ph"; d.textContent = text; return d; }
 
-const io = new IntersectionObserver(entries => {
-  for (const en of entries) if (en.isIntersecting) {
-    const img = en.target; io.unobserve(img);
-    imageUrl(img.dataset.id).then(u => { img.src = u; if (img.dataset.dl) img.dispatchEvent(new Event("loaded")); }).catch(() => { img.alt = "image indisponible"; });
-  }
-}, { rootMargin: "200px" });
-function lazyImg(id, cls) { const i = h("img", { class: cls || "", alt: "" }); i.dataset.id = id; io.observe(i); return i; }
+// --- onglets
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));
+  ["creer", "historique", "reglages"].forEach(t => $("tab-" + t).classList.toggle("hidden", t !== b.dataset.tab));
+  if (b.dataset.tab === "historique") loadHistory();
+  if (b.dataset.tab === "reglages") loadPrompts();
+});
 
-// ---------- état ----------
-let CONFIG = null;
-let job = null;            // dernier état connu de la fiche courante
-let pollTimer = null;
-let currentJobId = null;   // fiche suivie : toute réponse d'une autre fiche est ignorée
-let pollFails = 0;
-// Brouillon de la fiche courante : jamais écrasé par les rafraîchissements de statut.
-let draft = null;
-function draftFor(j) {
-  if (!draft || draft.jobId !== j.job_id) draft = { jobId: j.job_id, initSel: false, sel: { vision: [], texte: [] }, selTouched: false, pending: [], moods: [], garment: null, garmentDirty: false, mannequin: null, mannequinDirty: false, suiteAsked: false };
-  const d = draft;
-  if (!d.garmentDirty && j.garment_en != null) d.garment = j.garment_en;
-  if (!d.mannequinDirty && j.mannequin_desc != null) d.mannequin = j.mannequin_desc;
-  if (j.statut === "en_attente_validation" && !d.initSel) {
-    d.initSel = true; d.selTouched = false;
-    d.sel.vision = (j.decor_refs || []).map(r => r.file_id).slice(0, MAX_VISION);
-    d.sel.texte = (j.inspi_texte || []).map(r => r.file_id).filter(id => !d.sel.vision.includes(id)).slice(0, MAX_TEXTE);
-  }
-  return d;
-}
-const moodIds = () => (CONFIG ? CONFIG.moods.map(m => m.id) : []);
-
-function fillSelect(sel, values, withAll) {
-  sel.innerHTML = "";
-  if (withAll) sel.append(h("option", { value: "" }, withAll));
-  for (const v of values) sel.append(h("option", { value: v.value ?? v }, v.label ?? v));
-}
-
+// --- configuration
 async function loadConfig() {
-  CONFIG = await api("GET", "/config");
-  const users = CONFIG.users.length ? CONFIG.users : ["Jeremy"];
-  fillSelect($("#userSel"), users);
-  $("#userSel").value = store.get("user") && users.includes(store.get("user")) ? store.get("user") : users[0];
-  fillSelect($("#genre"), CONFIG.genres); fillSelect($("#upGenre"), CONFIG.genres);
-  const allTypes = [...new Set(Object.values(CONFIG.types_par_genre).flat())].sort();
-  $("#typeList").innerHTML = ""; for (const t of allTypes) $("#typeList").append(h("option", { value: t }));
+  cfg = await api("/config");
+  const sel = $("userSel"); sel.innerHTML = "";
+  (cfg.users.length ? cfg.users : ["Jeremy"]).forEach(u => { const o = document.createElement("option"); o.value = u; o.textContent = u; sel.appendChild(o); });
+  const saved = store.get(LS.user); if (saved && cfg.users.includes(saved)) sel.value = saved;
+  sel.onchange = () => store.set(LS.user, sel.value);
+  $("nImg").min = cfg.n.min; $("nImg").max = cfg.n.max; if (!$("nImg").dataset.touched) $("nImg").value = cfg.n.defaut;
+  lastMannequin = cfg.mannequin.texte; $("mannequin").value = lastMannequin; $("mannDefault").value = lastMannequin;
+  $("goHint").textContent = "≈ " + fmtUsd(cfg.estimation_image_usd) + " pour l'image test";
+  $("costInfo").textContent = "Plafond de coût par annonce : " + fmtUsd(cfg.plafond_usd) + ". Estimation par image : " + fmtUsd(cfg.estimation_image_usd) + ". Le lancement du lot est refusé si le coût estimé dépasse ce qui reste.";
+}
+$("nImg").oninput = () => { $("nImg").dataset.touched = "1"; };
+
+async function saveMannequin(text, from) {
+  text = text.trim();
+  if (!text || text === lastMannequin) return false;
+  await postJson("/prompt/save", { nom: "config_mannequin", texte: text, notes: "modifié depuis " + from });
+  lastMannequin = text; $("mannequin").value = text; $("mannDefault").value = text;
+  return true;
+}
+$("mannequin").onchange = async () => { try { if (await saveMannequin($("mannequin").value, "le formulaire")) toast("Mannequin mémorisé"); } catch (e) { toast(e.message); } };
+$("mannSave").onclick = async () => { try { $("mannMsg").textContent = (await saveMannequin($("mannDefault").value, "les réglages")) ? "Enregistré ✓" : "Aucun changement"; } catch (e) { $("mannMsg").textContent = e.message; } };
+
+// --- inspirations
+async function loadInspis(selectId) {
+  inspis = (await api("/inspis")).items || [];
+  if (selectId) selectedInspi = selectId;
+  renderInspis();
+}
+function renderInspis() {
+  const box = $("inspis"); box.innerHTML = "";
+  if (!inspis.length) { const p = document.createElement("div"); p.className = "muted"; p.textContent = "Aucune inspiration pour l'instant : ajoutes-en une ci-dessous."; box.appendChild(p); return; }
+  inspis.forEach(it => {
+    const d = document.createElement("div"); d.className = "it" + (it.drive_file_id === selectedInspi ? " sel" : "");
+    d.appendChild(imgEl(it.drive_file_id));
+    d.onclick = () => { selectedInspi = it.drive_file_id; renderInspis(); };
+    box.appendChild(d);
+  });
+}
+$("inspiUp").onclick = async () => {
+  const f = $("inspiFile").files[0]; if (!f) { $("inspiMsg").textContent = "Choisis un fichier."; return; }
+  $("inspiUp").disabled = true; $("inspiMsg").textContent = "Envoi…";
+  try {
+    const fd = new FormData(); fd.append("photo0", f);
+    const r = await api("/inspis", { method: "POST", body: fd });
+    $("inspiFile").value = ""; $("inspiMsg").textContent = "Ajoutée ✓";
+    await loadInspis((r.items && r.items[0] && r.items[0].drive_file_id) || "");
+  } catch (e) { $("inspiMsg").textContent = e.message; } finally { $("inspiUp").disabled = false; }
+};
+
+$("photo").onchange = () => {
+  const box = $("photoPreview"); box.innerHTML = "";
+  const f = $("photo").files[0]; if (!f) return;
+  const i = document.createElement("img"); i.src = URL.createObjectURL(f); box.appendChild(i);
+};
+
+// --- lancer un run
+$("goBtn").onclick = async () => {
+  $("goErr").textContent = "";
+  const f = $("photo").files[0];
+  if (!f) { $("goErr").textContent = "Ajoute la photo du produit."; return; }
+  if (!selectedInspi) { $("goErr").textContent = "Choisis une inspiration."; return; }
+  $("goBtn").disabled = true;
+  try {
+    await saveMannequin($("mannequin").value, "le formulaire");
+    const fd = new FormData();
+    fd.append("user", $("userSel").value || "Jeremy"); fd.append("inspi_file_id", selectedInspi);
+    fd.append("n", $("nImg").value); fd.append("mannequin", $("mannequin").value.trim());
+    ["pose", "notes", "taille", "marque", "mesures"].forEach(k => fd.append(k, $(k).value.trim()));
+    fd.append("photo0", f);
+    const r = await api("/run", { method: "POST", body: fd });
+    await openRun(r.run_id);
+    // pose et indications se réinitialisent à chaque run
+    $("pose").value = ""; $("notes").value = "";
+  } catch (e) { $("goErr").textContent = e.message; } finally { $("goBtn").disabled = false; }
+};
+
+// --- écran de résultat
+async function openRun(id) {
+  clearTimeout(pollTimer);
+  document.querySelector('#tabs button[data-tab="creer"]').click();
+  currentRun = await api("/run?id=" + encodeURIComponent(id));
+  $("runCard").classList.remove("hidden"); $("formBody").classList.add("hidden"); $("newBtn").classList.remove("hidden");
+  renderRun(true);
+  schedulePoll();
+}
+function schedulePoll() {
+  clearTimeout(pollTimer);
+  const watchingText = textWatch && Date.now() < textWatch.until;
+  if (!currentRun || !(isBusy(currentRun) || watchingText)) return;
+  pollTimer = setTimeout(async () => {
+    try {
+      currentRun = await api("/run?id=" + encodeURIComponent(currentRun.run_id));
+      if (textWatch && (currentRun.description !== textWatch.desc || currentRun.erreur)) textWatch = null;
+      renderRun(false);
+    } catch (e) { $("runErr").textContent = e.message; }
+    schedulePoll();
+  }, 3000);
+}
+$("newBtn").onclick = () => {
+  clearTimeout(pollTimer); currentRun = null;
+  $("runCard").classList.add("hidden"); $("formBody").classList.remove("hidden"); $("newBtn").classList.add("hidden");
+};
+
+function renderRun(fullReset) {
+  const run = currentRun, v = viewOf(run);
+  $("runTitle").textContent = "Annonce " + run.run_id;
+  const st = $("runStatus"); st.textContent = statusLabel(run); st.className = "status" + (isBusy(run) ? " busy" : "") + (run.statut === "test_erreur" ? " err" : "");
+  $("runCost").textContent = "Coût : " + fmtUsd(run.cout_total) + " (images " + fmtUsd(run.cout_images) + ", texte " + fmtUsd(run.cout_texte) + ")" + (run.feedback ? " · Feedback en cours : « " + run.feedback + " »" : "");
+  $("runErr").textContent = cleanErr(run.erreur);
+  // image test
+  $("testBlock").classList.toggle("hidden", !(v.showTest || v.canValidate));
+  const test = (run.images || []).find(i => i.idx === 0);
+  const ti = $("testImg"); const key = test ? test.drive_file_id + ":" + test.essai : "none";
+  if (ti.dataset.key !== key || fullReset) {
+    ti.dataset.key = key; ti.innerHTML = "";
+    if (test && test.drive_file_id) { const i = imgEl(test.drive_file_id, "test-img"); ti.appendChild(i); }
+    else ti.appendChild(ph(run.statut === "test_erreur" ? (test && test.erreur ? cleanErr(test.erreur) : "Échec") : "Génération…"));
+  }
+  $("validateBar").classList.toggle("hidden", !v.canValidate);
+  $("validateBtn").textContent = validateLabel(run, cfg ? cfg.estimation_image_usd : 0.1);
+  $("fbBlock").classList.toggle("hidden", !v.canFeedback);
+  $("fbLabel").firstChild.textContent = run.statut === "termine" ? "Un ajustement sur l'ensemble ? " : "Un ajustement à demander ? ";
+  $("fbBtn").textContent = run.statut === "termine" ? "Regénérer l'image test avec ce feedback (puis revalider)" : "Regénérer l'image test avec ce feedback";
+  // annonce
+  $("listing").classList.toggle("hidden", !v.showListing);
+  if (v.showListing) renderListing(run);
 }
 
-function moodChip(m, on, onClick) {
-  return h("span", { class: "chip" + (on ? " on" : ""), title: m.definition, onclick: onClick }, m.id.replaceAll("_", " "));
+let mainIdx = 0;
+function renderListing(run) {
+  $("sellerName").textContent = run.user || "";
+  $("avatar").textContent = (run.user || "?").slice(0, 1).toUpperCase();
+  $("lMeta").textContent = listingMeta(run);
+  const active = document.activeElement;
+  if (active !== $("lTitre")) $("lTitre").value = run.titre || "";
+  if (active !== $("lDesc")) $("lDesc").value = run.description || "";
+  $("textStatus").textContent = run.titre ? "" : (run.erreur && /^Texte/.test(run.erreur) ? cleanErr(run.erreur) : "Rédaction du texte…");
+  const byIdx = new Map((run.images || []).filter(i => i.drive_file_id).map(i => [i.idx, i]));
+  const slots = []; for (let k = 0; k < Number(run.n || 1); k++) slots.push(k);
+  if (mainIdx >= slots.length) mainIdx = 0;
+  const main = $("mainImg"); main.innerHTML = "";
+  const cur = byIdx.get(mainIdx);
+  main.appendChild(cur ? imgEl(cur.drive_file_id) : ph("Image en cours…"));
+  const strip = $("strip"); strip.innerHTML = "";
+  slots.forEach(k => {
+    const it = byIdx.get(k);
+    let el;
+    if (it) { el = imgEl(it.drive_file_id, k === mainIdx ? "on" : ""); } else { el = document.createElement("div"); el.className = "mini"; }
+    el.onclick = () => { mainIdx = k; renderListing(currentRun); };
+    strip.appendChild(el);
+  });
 }
 
-// ---------- onglets ----------
-function showTab(name) {
-  for (const t of ["creer", "historique", "reglages"]) $("#tab-" + t).classList.toggle("hidden", t !== name);
-  document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
-  store.set("tab", name);
-  if (name === "historique") loadHistory();
+$("validateBtn").onclick = async () => {
+  $("validateErr").textContent = ""; $("validateBtn").disabled = true;
+  try { await postJson("/run/valider", { run_id: currentRun.run_id, n: currentRun.n }); currentRun = await api("/run?id=" + encodeURIComponent(currentRun.run_id)); renderRun(true); schedulePoll(); }
+  catch (e) { $("validateErr").textContent = e.message; } finally { $("validateBtn").disabled = false; }
+};
+$("fbBtn").onclick = async () => {
+  const t = $("fbText").value.trim(); $("fbErr").textContent = "";
+  if (!t) { $("fbErr").textContent = "Écris l'ajustement à appliquer."; return; }
+  $("fbBtn").disabled = true;
+  try { await postJson("/run/feedback", { run_id: currentRun.run_id, feedback: t }); $("fbText").value = ""; currentRun = await api("/run?id=" + encodeURIComponent(currentRun.run_id)); renderRun(true); schedulePoll(); }
+  catch (e) { $("fbErr").textContent = e.message; } finally { $("fbBtn").disabled = false; }
+};
+
+async function saveText() {
+  const titre = $("lTitre").value.trim(), description = $("lDesc").value.trim();
+  if (!currentRun || !titre || !description || (titre === currentRun.titre && description === currentRun.description)) return;
+  try { await postJson("/run/texte", { run_id: currentRun.run_id, action: "editer", titre, description }); currentRun.titre = titre; currentRun.description = description; toast("Texte enregistré"); } catch (e) { toast(e.message); }
 }
-document.querySelectorAll("#tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
-// ---------- historique (consultation seule) ----------
-let HIST = null, histDays = 30;
+$("lTitre").onchange = saveText; $("lDesc").onchange = saveText;
+$("copyAll").onclick = async () => {
+  try { await navigator.clipboard.writeText($("lTitre").value + "\n\n" + $("lDesc").value); toast("Texte copié"); } catch (e) { toast("Copie impossible : " + e.message); }
+};
+$("regenText").onclick = async () => {
+  try { await postJson("/run/texte", { run_id: currentRun.run_id, action: "regenerer" }); textWatch = { desc: currentRun.description, until: Date.now() + 60000 }; $("textStatus").textContent = "Rédaction du texte…"; schedulePoll(); } catch (e) { toast(e.message); }
+};
+$("dlAll").onclick = async () => {
+  const imgs = (currentRun.images || []).filter(i => i.drive_file_id).sort((a, b) => a.idx - b.idx);
+  for (const it of imgs) {
+    try { const b = await fetchBlob(it.drive_file_id, true); const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = "annonce_" + currentRun.run_id + "_" + (it.idx + 1) + ".jpg"; a.click(); await new Promise(r => setTimeout(r, 300)); }
+    catch (e) { toast("Téléchargement : " + e.message); }
+  }
+};
+
+// --- historique
 async function loadHistory() {
-  try { HIST = (await api("GET", "/jobs")).jobs; } catch (e) { return toast(e.message); }
-  renderHistory();
-}
-const money = v => Number(v || 0).toFixed(3) + " $";
-function renderHistory() {
-  const root = $("#tab-historique"); root.innerHTML = "";
-  if (!HIST) return;
-  const s = summarize(HIST, histDays, Date.now());
-  const sel = h("select", { style: "width:auto" }, [[7, "7 derniers jours"], [30, "30 derniers jours"], [0, "Tout"]].map(([v, l]) => h("option", { value: v, ...(v === histDays ? { selected: "" } : {}) }, l)));
-  sel.addEventListener("change", () => { histDays = Number(sel.value); renderHistory(); });
-  const stat = (k, v) => h("div", {}, h("div", { class: "k" }, k), h("div", { class: "v" }, v));
-  root.append(h("section", { class: "card" },
-    h("div", { class: "row" }, h("h2", { class: "grow" }, "Historique"), sel),
-    h("div", { class: "hist-totals" }, stat("Annonces", String(s.fiches)), stat("Images générées", String(s.images) + (s.regenerations ? " (dont " + s.regenerations + " refaites)" : "")),
-      stat("Coût du texte", money(s.cout_texte)), stat("Coût des images", money(s.cout_images)), stat("Coût total", money(s.cout_total)),
-      stat("Moyenne par annonce", s.fiches ? money(s.cout_total / s.fiches) : "—")),
-    h("p", { class: "muted", style: "margin-top:8px" }, "Coût des images = unités facturées par Fal × tarif de config_image ; coût du texte = retour réel d'OpenRouter.")));
-  if (!s.list.length) root.append(h("p", { class: "muted" }, "Aucune annonce sur cette période."));
-  for (const j of s.list) {
-    const detail = h("div", { class: "hidden", style: "margin-top:12px;grid-column:1 / -1" });
-    const row = h("div", { class: "card" });
-    const head = h("div", { class: "hist-row" },
-      j.cover_file_id ? lazyImg(j.cover_file_id) : h("div", { class: "ph", style: "width:64px;height:84px;aspect-ratio:auto;font-size:11px" }, "—"),
-      h("div", {}, h("strong", {}, j.titre || "(annonce sans titre)"),
-        h("div", { class: "muted" }, new Date(j.created_at).toLocaleString("fr-FR") + " · " + j.user + " · " + [j.genre, j.type_vetement].filter(Boolean).join(" ")),
-        h("div", { class: "muted" }, (STATUS_LABELS[j.statut] || j.statut) + " · " + j.nb_images + " image(s)" + (j.nb_regenerations ? " dont " + j.nb_regenerations + " refaite(s)" : "") + (j.note_globale ? " · " + j.note_globale : ""))),
-      h("div", { style: "text-align:right" }, h("div", { class: "v", style: "font-size:16px;font-weight:650" }, money(j.cout_total)), h("div", { class: "muted" }, "texte " + money(j.cout_texte) + " · images " + money(j.cout_images))));
-    let loaded = false;
-    head.addEventListener("click", async () => {
-      detail.classList.toggle("hidden");
-      if (loaded || detail.classList.contains("hidden")) return; loaded = true;
-      detail.append(h("span", { class: "muted" }, "Chargement…"));
-      try {
-        const d = await api("GET", "/job-status?id=" + encodeURIComponent(j.job_id));
-        detail.innerHTML = "";
-        const shots = h("div", { class: "plans hist-shots", style: "grid-template-columns:repeat(auto-fit,minmax(200px,1fr))" });
-        for (const p of d.plans) {
-          const fig = h("figure", { style: "margin:0" });
-          if (p.statut === "pret") { const img = h("img", { class: "shot", alt: "" }); imageUrl(p.drive_file_id).then(u => { img.src = u; }).catch(() => { img.alt = "image indisponible"; }); fig.append(img); }
-          else fig.append(h("div", { class: "ph" }, p.statut === "erreur" ? "Échec : " + cleanErr(p.erreur) : "Pas générée"));
-          fig.append(h("figcaption", { class: "muted" }, (PLAN_LABELS[p.plan] || p.plan) + (p.statut === "pret" ? " · " + p.fournisseur + " · " + money(p.cout_plan) + (p.tentatives_total > 1 ? " · " + p.tentatives_total + " tentatives" : "") : "")));
-          shots.append(fig);
-        }
-        detail.append(h("h3", {}, d.titre || ""), h("p", { class: "desc" }, d.description || ""),
-          h("div", { class: "row" }, h("button", { class: "btn ghost", onclick: () => copy(d.titre, "Titre") }, "Copier le titre"), h("button", { class: "btn ghost", onclick: () => copy(d.description, "Description") }, "Copier la description")),
-          ...(d.erreur ? [h("p", { class: "bad" }, d.erreur)] : []), shots);
-      } catch (e) { detail.innerHTML = ""; detail.append(h("span", { class: "bad" }, e.message)); loaded = false; }
-    });
-    row.append(head, detail); root.append(row);
-  }
-}
-
-// Réglages : chargement à l'ouverture de chaque section
-$("#dProfil").addEventListener("toggle", () => { if ($("#dProfil").open) loadProfile(); });
-$("#dBiblio").addEventListener("toggle", () => { if ($("#dBiblio").open && !LIB) loadLibrary(); });
-$("#dPrompts").addEventListener("toggle", () => { if ($("#dPrompts").open && !PROMPTS) loadPrompts(); });
-
-// ---------- suivi d'une fiche ----------
-function stopPoll() { if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; } }
-async function refreshJob(id) {
-  if (currentJobId !== id) { stopPoll(); pollFails = 0; currentJobId = id; }
-  let j;
-  try { j = await api("GET", "/job-status?id=" + encodeURIComponent(id)); }
-  catch (e) {
-    if (id !== currentJobId) return job;             // réponse périmée : on ignore
-    if (job && job.job_id === id && BUSY.includes(job.statut) && ++pollFails <= 5) { schedulePoll(id, 3000 * pollFails); return job; }  // échec transitoire : backoff
-    throw e;
-  }
-  if (id !== currentJobId) return job;               // l'utilisateur a changé de fiche pendant l'attente
-  pollFails = 0;
-  const prev = job;
-  if (!prev || prev.job_id !== j.job_id) resetJournal(j.job_id);
-  job = j; store.set("job", id);
-  for (const l of journalLines(prev && prev.job_id === j.job_id ? prev : null, j, { suiteAsked: !!(draft && draft.suiteAsked) })) pushJournal(l.text, l.kind);
-  if (j.statut === "texte_en_cours") armTextTimer(j.job_id);
-  renderCreate();
-  stopPoll();
-  if (BUSY.includes(job.statut)) schedulePoll(id, 3000);
-  return job;
-}
-function schedulePoll(id, ms) {
-  stopPoll();
-  if (document.hidden) return;                       // reprise au retour de l'onglet (visibilitychange)
-  pollTimer = setTimeout(() => refreshJob(id).catch(e => toast(e.message)), ms);
-}
-document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && currentJobId && job && job.job_id === currentJobId && BUSY.includes(job.statut) && !pollTimer) refreshJob(currentJobId).catch(e => toast(e.message));
-});
-function setStatus(el, statut) {
-  el.textContent = STATUS_LABELS[statut] || statut || "";
-  el.className = "status" + (BUSY.includes(statut) ? " busy" : "") + (statut === "erreur" || statut === "budget_depasse" ? " err" : "");
-}
-
-// ---------- journal ----------
-let journal = { jobId: null, lines: [] };
-function resetJournal(jobId) { journal = { jobId, lines: [] }; }
-function pushJournal(text, kind) {
-  const last = journal.lines[journal.lines.length - 1];
-  if (last && last.text === text) return;
-  const t = new Date(); const hh = String(t.getHours()).padStart(2, "0") + ":" + String(t.getMinutes()).padStart(2, "0") + ":" + String(t.getSeconds()).padStart(2, "0");
-  journal.lines.push({ text, kind: kind || "info", hh });
-}
-function renderJournal() {
-  const box = $("#journal"); box.innerHTML = "";
-  for (const l of journal.lines) box.append(h("div", { class: "l " + l.kind }, l.hh + "  " + l.text));
-  box.scrollTop = box.scrollHeight;
-}
-let textTimer = null;
-function armTextTimer(jobId) {              // 2ᵉ message du texte : temporisé (un seul état côté n8n)
-  clearTimeout(textTimer);
-  textTimer = setTimeout(() => { if (job && job.job_id === jobId && job.statut === "texte_en_cours") { pushJournal("Rédaction de l'annonce…"); renderJournal(); } }, 3000);
-}
-
-function renderCreate() {
-  const step = stepOf(job);
-  document.querySelectorAll("#stepper .step").forEach(el => {
-    const n = Number(el.dataset.step);
-    el.classList.toggle("active", n === step);
-    el.classList.toggle("done", !!job && n < step);
-  });
-  $("#newBar").classList.toggle("hidden", !job);
-  $("#jobRef").textContent = job ? "Annonce " + job.job_id : "";
-  $("#stepForm").classList.toggle("hidden", !!job);
-  $("#stepText").classList.toggle("hidden", !job || step !== 1);
-  $("#stepInspi").classList.toggle("hidden", !job || step !== 2);
-  $("#stepPhotos").classList.toggle("hidden", !job || step !== 3);
-  $("#journalCard").classList.toggle("hidden", !job);
-  if (!job) return;
-  const d = draftFor(job);
-  if (step === 1) renderText(d); else if (step === 2) renderInspi(d); else renderPhotos(d);
-  renderJournal();
-}
-function renderText(d) {
-  setStatus($("#jobStatus"), job.statut);
-  const isErr = job.statut === "erreur";
-  $("#jobError").textContent = isErr ? job.erreur : "";
-  $("#retryTextBar").classList.toggle("hidden", !isErr);
-  const ready = !!job.titre;
-  $("#textBlock").classList.toggle("hidden", !ready);
-  if (!ready) return;
-  $("#titre").textContent = job.titre; $("#desc").textContent = job.description;
-  const busy = BUSY.includes(job.statut);
-  for (const id of ["refineBtn", "styleBtn"]) $("#" + id).disabled = busy;
-  if (document.activeElement !== $("#garmentEn") && $("#garmentEn").value !== (d.garment || "")) $("#garmentEn").value = d.garment || "";
-}
-$("#garmentEn").addEventListener("input", () => { if (draft) { draft.garment = $("#garmentEn").value; draft.garmentDirty = true; } });
-$("#garmentToggle").addEventListener("click", () => $("#garmentBox").classList.toggle("hidden"));
-$("#refineBtn").addEventListener("click", async () => {
-  const msg = $("#feedbackText").value.trim(); if (!msg) return toast("Écris ce que tu veux changer");
-  try { await api("POST", "/job/texte", { job_id: job.job_id, message: msg }); $("#feedbackText").value = ""; await refreshJob(job.job_id); } catch (e) { toast(e.message); }
-});
-$("#retryTextBtn").addEventListener("click", async () => {
-  try { await api("POST", "/job/texte", { job_id: job.job_id, retry: true }); await refreshJob(job.job_id); } catch (e) { toast(e.message); }
-});
-$("#copyTitle").addEventListener("click", () => copy(job.titre, "Titre"));
-$("#copyDesc").addEventListener("click", () => copy(job.description, "Description"));
-$("#styleBtn").addEventListener("click", startStyle);
-function toggleInspi(fileId, kind) {
-  const sel = draft.sel; draft.selTouched = true;
-  const other = kind === "vision" ? "texte" : "vision";
-  const max = kind === "vision" ? MAX_VISION : MAX_TEXTE;
-  if (sel[kind].includes(fileId)) sel[kind] = sel[kind].filter(id => id !== fileId);
-  else if (sel[kind].length < max) { sel[other] = sel[other].filter(id => id !== fileId); sel[kind].push(fileId); }
-  else toast("Maximum " + max + " " + (kind === "vision" ? "principales" : "secondaires"));
-  renderInspi(draft);
-}
-
-function renderInspi(d) {
-  setStatus($("#inspiStatus"), job.statut);
-  const isErr = job.statut === "erreur";
-  $("#inspiError").textContent = isErr ? job.erreur : "";
-  $("#retryStyleBar").classList.toggle("hidden", !isErr);
-  const waiting = job.statut === "en_attente_validation";
-  $("#warnings").textContent = (job.avertissements || []).join(" — ");
-  for (const id of ["validateBtn", "rerollBtn"]) $("#" + id).disabled = !waiting;
-  if (!LIB && !libLoading && !libLoadFailed) { libLoading = true; loadLibrary().finally(() => { libLoading = false; if (job && stepOf(job) === 2) renderInspi(draftFor(job)); }); }
-  if (document.activeElement !== $("#mannequinDesc") && $("#mannequinDesc").value !== (d.mannequin || "")) $("#mannequinDesc").value = d.mannequin || "";
-
-  const chips = $("#moodChips"); chips.innerHTML = "";
-  for (const m of CONFIG.moods) chips.append(moodChip(m, d.moods.includes(m.id), () => {
-    d.moods = d.moods.includes(m.id) ? d.moods.filter(x => x !== m.id) : [...d.moods, m.id]; renderInspi(d);
-  }));
-  const box = $("#styleGrid"); box.innerHTML = "";
-  if (!LIB && libLoadFailed) {
-    box.append(h("span", { class: "muted" }, "Bibliothèque indisponible. "), h("button", { class: "btn ghost", onclick: async () => {
-      libLoadFailed = false; await loadLibrary(); if (job && stepOf(job) === 2) renderInspi(draftFor(job));
-    } }, "Réessayer"));
-    $("#gridCount").textContent = "";
-  }
-  else if (!LIB) { box.append(h("span", { class: "muted" }, "Chargement de la bibliothèque…")); $("#gridCount").textContent = ""; }
-  else {
-    const sel = d.sel, chosen = id => sel.vision.includes(id) || sel.texte.includes(id);
-    const shown = filterByMoods(LIB, d.moods);
-    const list = [...shown.filter(i => chosen(i.drive_file_id)), ...shown.filter(i => !chosen(i.drive_file_id)).sort((a, b) => (b.utilisations || 0) - (a.utilisations || 0))];
-    for (const id of [...sel.vision, ...sel.texte]) if (!list.some(i => i.drive_file_id === id)) { const it = libById(id); if (it) list.unshift(it); }
-    $("#gridCount").textContent = list.length + " photo(s)" + (d.moods.length ? " · " + d.moods.map(m => m.replaceAll("_", " ")).join(" + ") : " · toute la bibliothèque");
-    for (const pid of d.pending) if (!libById(pid)) box.append(h("div", { class: "card item off" }, lazyImg(pid), h("div", { class: "muted" }, "indexation en cours")));
-    if (!list.length) box.append(h("span", { class: "muted" }, "Aucune photo pour ce filtre : retire une ambiance."));
-    for (const it of list) {
-      const id = it.drive_file_id, isV = sel.vision.includes(id), isT = sel.texte.includes(id);
-      const card = h("div", { class: "card item" + (isV ? " vision" : isT ? " texte" : "") });
-      const mchips = h("div", { class: "chips" }, (it.moods || []).map(m => h("span", { class: "chip static" + (d.moods.includes(m) ? " on" : "") }, m.replaceAll("_", " "))));
-      const descBox = h("div", { class: "hidden" });
-      const ta = h("textarea", {}); ta.value = it.description_en || "";
-      const save = h("button", { class: "btn ghost", style: "margin-top:4px", onclick: async () => {
-        try { const r = await api("POST", "/library/update", { drive_file_id: id, description_en: ta.value }); it.description_en = r.description_en; toast("Description enregistrée"); } catch (e) { toast(e.message); }
-      } }, "Enregistrer");
-      descBox.append(ta, save);
-      card.append(lazyImg(id), mchips,
-        h("div", { class: "muted" }, it.type_vetement + " · utilisée " + (it.utilisations || 0) + " fois"),
-        h("div", { class: "seg" },
-          h("button", { class: "v" + (isV ? " on" : ""), title: "Image envoyée au générateur : définit le décor (1 seule)", onclick: () => toggleInspi(id, "vision") }, "Principale"),
-          h("button", { class: "t" + (isT ? " on" : ""), title: "Seule sa description est envoyée (3 max)", onclick: () => toggleInspi(id, "texte") }, "Secondaire")),
-        h("button", { class: "linkbtn", onclick: () => descBox.classList.toggle("hidden") }, "Modifier la description"),
-        descBox);
-      box.append(card);
-    }
-  }
-  $("#selCount").textContent = "Sélection : " + d.sel.vision.length + "/" + MAX_VISION + " principales · " + d.sel.texte.length + "/" + MAX_TEXTE + " secondaires";
-}
-
-$("#mannToggle").addEventListener("click", () => $("#mannBox").classList.toggle("hidden"));
-$("#mannequinDesc").addEventListener("input", () => { if (draft) { draft.mannequin = $("#mannequinDesc").value; draft.mannequinDirty = true; } });
-$("#retryStyleBtn").addEventListener("click", startStyle);
-$("#rerollBtn").addEventListener("click", startStyle);
-
-$("#validateBtn").addEventListener("click", async () => {
-  const d = draft; if (!d || !job) return;
-  const ids = [...d.sel.vision, ...d.sel.texte];
-  if (d.sel.vision.length !== 1) return toast("Choisis une inspiration principale : elle définit le décor");
-  const mood = moodUnion(LIB || [], ids).join(", ");
-  $("#validateBtn").disabled = true;
+  const box = $("tab-historique"); box.innerHTML = '<p class="muted">Chargement…</p>';
   try {
-    await api("POST", "/job/valider", {
-      job_id: job.job_id, mood, decor_refs: d.sel.vision, inspi_texte: d.sel.texte,
-      garment_en: d.garment != null ? d.garment : (job.garment_en || ""), mannequin_desc: d.mannequin != null ? d.mannequin : (job.mannequin_desc || ""),
-      texte_visible: !!job.texte_visible, plans: ["porte_miroir"]
+    const items = (await api("/runs")).items || [];
+    const t = totalsOf(items);
+    box.innerHTML = "";
+    const tot = document.createElement("section"); tot.className = "card hist-totals";
+    [["Annonces", t.runs], ["Images", t.images], ["Coût total", fmtUsd(t.cout)]].forEach(([k, v]) => { const d = document.createElement("div"); d.innerHTML = '<div class="k"></div><div class="v"></div>'; d.children[0].textContent = k; d.children[1].textContent = v; tot.appendChild(d); });
+    box.appendChild(tot);
+    if (!items.length) { const p = document.createElement("p"); p.className = "muted"; p.textContent = "Aucune annonce pour l'instant."; box.appendChild(p); return; }
+    items.forEach(r => {
+      const row = document.createElement("section"); row.className = "card hist-row";
+      row.appendChild(r.miniature ? imgEl(r.miniature) : Object.assign(document.createElement("div"), { className: "mini" }));
+      const mid = document.createElement("div");
+      const h = document.createElement("b"); h.textContent = r.titre || "(sans titre)"; mid.appendChild(h);
+      const m = document.createElement("div"); m.className = "muted"; m.textContent = new Date(r.cree_le).toLocaleString("fr-FR") + " · " + r.user + " · " + r.nb_images + "/" + r.n + " images · " + r.statut + (r.erreur ? " · " + cleanErr(r.erreur) : ""); mid.appendChild(m);
+      row.appendChild(mid);
+      const c = document.createElement("div"); c.textContent = fmtUsd(r.cout_total); row.appendChild(c);
+      row.onclick = () => openRun(r.run_id).catch(e => toast(e.message));
+      box.appendChild(row);
     });
-    await refreshJob(job.job_id);
-  } catch (e) { toast(e.message, 6000); $("#validateBtn").disabled = false; }
-});
-
-$("#ficheUpBtn").addEventListener("click", async () => {
-  const files = [...$("#ficheUpFiles").files]; if (!files.length || !job) return toast("Choisis au moins une photo");
-  const jobAtStart = job.job_id;
-  const fd = new FormData(); fd.append("genre", job.genre); fd.append("type_vetement", job.type_vetement);
-  files.forEach((f, i) => fd.append("photo" + i, f, f.name));
-  $("#ficheUpBtn").disabled = true; $("#ficheUpMsg").textContent = "Envoi…";
-  try {
-    const r = await api("POST", "/library/upload", fd);
-    const ids = r.drive_file_ids || [];
-    if (currentJobId !== jobAtStart || !draft || draft.jobId !== jobAtStart) { $("#ficheUpMsg").textContent = ""; $("#ficheUpBtn").disabled = false; return; }  // fiche changée pendant l'envoi
-    const d = draft;
-    d.pending.push(...ids.filter(x => !d.pending.includes(x)));
-    const adoptKnown = () => {   // n'entrent dans la sélection que les ids déjà connus de la bibliothèque
-      if (!draft || draft.jobId !== jobAtStart) return;
-      for (const id of [...d.pending]) {
-        if (!libById(id)) continue;
-        d.pending = d.pending.filter(x => x !== id);
-        if (d.sel.vision.includes(id) || d.sel.texte.includes(id)) continue;
-        if (d.sel.vision.length < MAX_VISION) d.sel.vision.push(id);
-        else if (d.sel.texte.length < MAX_TEXTE) d.sel.texte.push(id);
-        d.selTouched = true;
-      }
-    };
-    $("#ficheUpMsg").textContent = ids.length + " photo(s) envoyée(s) ; indexation en cours (~5 s par photo), la grille se recharge dans 20 s.";
-    $("#ficheUpFiles").value = ""; renderInspi(draftFor(job));
-    await loadLibrary(); adoptKnown(); if (job && job.job_id === jobAtStart && stepOf(job) === 2) renderInspi(draftFor(job));
-    setTimeout(async () => { await loadLibrary(); adoptKnown(); if (job && job.job_id === jobAtStart && stepOf(job) === 2) renderInspi(draftFor(job)); }, 20000);
-  } catch (e) { $("#ficheUpMsg").textContent = e.message; toast(e.message); }
-  $("#ficheUpBtn").disabled = false;
-});
-const planState = new Map();   // job_id|plan → { fb:string } : survit aux re-rendus
-const inputPhotos = new Map(); // job_id → URL locale de la 1re photo d'entrée (annonces créées dans cette session)
-let globalNote = null; let globalReasons = new Set();
-
-function origFigure(url) {
-  if (!url) return null;
-  const img = h("img", { class: "orig", alt: "photo d'origine" });
-  Promise.resolve(url).then(u => { img.src = u; }).catch(() => { img.alt = "photo d'origine indisponible"; });
-  return h("figure", {}, img, h("figcaption", {}, "Photo d'origine"));
+  } catch (e) { box.innerHTML = ""; const p = document.createElement("p"); p.className = "bad"; p.textContent = e.message; box.appendChild(p); }
 }
 
-function renderPhotos() {
-  const stateFor = plan => { const k = job.job_id + "|" + plan; if (!planState.has(k)) planState.set(k, { fb: "" }); return planState.get(k); };
-  setStatus($("#gStatus"), job.statut);
-  $("#gCost").textContent = "Coût : " + job.cout_total.toFixed(3) + " $ (texte " + job.cout_texte.toFixed(4) + " $, images " + job.cout_images.toFixed(3) + " $) · plafond " + (CONFIG ? CONFIG.plafond_usd : 1) + " $";
-  $("#gError").textContent = job.statut === "erreur" ? job.erreur : "";
-  const st = job.statut, first = st === "premiere_prete";
-  const gallery = ["galerie_prete", "budget_depasse", "termine"].includes(st);
-  $("#firstBar").classList.toggle("hidden", !(first && job.plans[0] && job.plans[0].statut === "pret"));
-  $("#finalBlock").classList.toggle("hidden", !gallery);
-  const box = $("#plans"); box.innerHTML = "";
-  const origId = (job.input_photo_ids || [])[0];
-  const origUrl = origId ? null : inputPhotos.get(job.job_id);
-  const origFig = () => origId ? origFigure(imageUrl(origId)) : origFigure(origUrl);
-  const canRegen = plan => (st === "galerie_prete" || st === "budget_depasse") || (first && plan === "porte_miroir");
-  job.plans.forEach((p, idx) => {
-    const card = h("div", { class: "card plan" });
-    card.append(h("h3", {}, (idx + 1) + "/3 · " + (PLAN_LABELS[p.plan] || p.plan)));
-    if (p.statut === "pret") {
-      const img = h("img", { class: "shot", alt: "" });
-      imageUrl(p.drive_file_id).then(u => { img.src = u; }).catch(() => { img.alt = "image indisponible"; });
-      const right = h("figure", {}, img, h("figcaption", {}, "Générée"));
-      const dl = h("a", { class: "muted", href: "#" }, "Télécharger");
-      dl.addEventListener("click", async ev => {
-        ev.preventDefault();
-        try { const u = await imageUrl(p.drive_file_id);
-          const a = h("a", { href: u, download: job.job_id + "_" + p.plan + ".jpg" }); document.body.append(a); a.click(); a.remove();
-        } catch (e) { toast("Téléchargement impossible : " + e.message); }
+// --- prompts (édition + versions)
+async function loadPrompts() {
+  const box = $("promptBox"); box.innerHTML = '<p class="muted">Chargement…</p>';
+  try {
+    const d = await api("/prompts", {}, baseV3());
+    const list = Array.isArray(d) ? d : (d.prompts || d.items || []);
+    box.innerHTML = "";
+    ["prompt_image", "prompt_texte"].forEach(nom => {
+      const p = list.find(x => x.nom === nom); if (!p) return;
+      const versions = (p.versions || []).slice().sort((a, b) => b.version - a.version);
+      const active = versions.find(v => v.actif) || versions[0];
+      const sec = document.createElement("section"); sec.className = "card";
+      const h = document.createElement("h2"); h.textContent = nom + " (version active : v" + (active ? active.version : "?") + ")"; sec.appendChild(h);
+      const ta = document.createElement("textarea"); ta.style.minHeight = "220px"; ta.value = active ? active.texte : ""; sec.appendChild(ta);
+      const note = document.createElement("input"); note.type = "text"; note.placeholder = "Note : pourquoi ce changement ?"; note.style.marginTop = "8px"; sec.appendChild(note);
+      const row = document.createElement("div"); row.className = "row"; row.style.marginTop = "8px";
+      const save = document.createElement("button"); save.className = "btn"; save.textContent = "Enregistrer comme nouvelle version";
+      const msg = document.createElement("span"); msg.className = "muted";
+      save.onclick = async () => { try { const r = await postJson("/prompt/save", { nom, texte: ta.value, notes: note.value }); msg.textContent = r.inchange ? "Aucun changement" : "Version v" + r.version + " active ✓"; if (!r.inchange) loadPrompts(); } catch (e) { msg.textContent = e.message; } };
+      row.append(save, msg); sec.appendChild(row);
+      const vs = document.createElement("div"); vs.className = "versions"; vs.style.marginTop = "12px";
+      versions.forEach(v => {
+        const d = document.createElement("div"); d.className = "v";
+        const t = document.createElement("div"); t.innerHTML = "<b></b> <span class='muted'></span>"; t.children[0].textContent = "v" + v.version + (v.actif ? " · active" : ""); t.children[1].textContent = v.notes || ""; d.appendChild(t);
+        if (!v.actif) { const b = document.createElement("button"); b.className = "btn ghost"; b.textContent = "Restaurer cette version"; b.style.marginTop = "4px"; b.onclick = async () => { try { await postJson("/prompts/activer", { nom, version: v.version }, baseV3()); loadPrompts(); } catch (e) { toast(e.message); } }; d.appendChild(b); }
+        vs.appendChild(d);
       });
-      card.append(h("div", { class: "pair" }, origFig(), right));
-      card.append(h("div", { class: "bar" }, h("span", { class: "muted" }, p.fournisseur + " · " + (p.cout_plan || 0).toFixed(2) + " $"), dl));
-      if (gallery) {
-        const keep = h("input", { type: "checkbox" }); keep.checked = p.garde;
-        keep.addEventListener("change", async () => { try { await api("POST", "/job/garder", { job_id: job.job_id, plan: p.plan, garde: keep.checked }); } catch (e) { toast(e.message); keep.checked = !keep.checked; } });
-        card.append(h("div", { class: "bar" }, h("label", { style: "margin:0;color:var(--ink)" }, keep, " Garder")));
-      }
-    } else {
-      const msg = p.statut === "erreur" ? "Échec : " + cleanErr(p.erreur)
-        : idx > 0 && !(draft && draft.suiteAsked) ? "Après validation de la première photo"
-        : st === "generation_en_cours" ? "En cours…" : "En attente";
-      card.append(h("div", { class: "pair" }, origFig(), h("figure", {}, h("div", { class: "ph" }, msg))));
-    }
-    if (canRegen(p.plan) && (p.statut === "pret" || p.statut === "erreur")) {
-      const fb = h("input", { type: "text", placeholder: "Explique ce qui ne va pas (facultatif)", value: stateFor(p.plan).fb });
-      fb.addEventListener("input", () => { stateFor(p.plan).fb = fb.value; });
-      const force = st === "budget_depasse" ? h("input", { type: "checkbox" }) : null;
-      const btn = h("button", { class: "btn ghost", onclick: async () => {
-        btn.disabled = true;
-        try { await api("POST", "/job/plan", { job_id: job.job_id, plan: p.plan, feedback: fb.value, force: !!(force && force.checked) }); await refreshJob(job.job_id); }
-        catch (e) { toast(e.message); btn.disabled = false; }
-      } }, "Refaire cette photo (~0,08 $)");
-      card.append(h("div", { class: "muted", style: "margin-top:6px" }, "Ce qui ne va pas :"), fb,
-        h("div", { class: "bar" }, btn, force ? h("label", { style: "margin:0;color:var(--ink)" }, force, " dépasser le plafond") : null));
-    }
-    box.append(card);
-  });
-  if (gallery) {
-    $("#gTitle").textContent = job.titre || ""; $("#gDesc").textContent = job.description || "";
-    const fbk = job.feedback && job.feedback.global;
-    $("#globalRating").innerHTML = "";
-    const gUp = h("button", { class: "thumb-btn", onclick: () => { globalNote = "up"; renderGlobal(); } }, "👍");
-    const gDown = h("button", { class: "thumb-btn", onclick: () => { globalNote = "down"; renderGlobal(); } }, "👎");
-    $("#globalRating").append(gUp, gDown);
-    if (fbk && !globalNote) { globalNote = fbk.note === "👍" ? "up" : "down"; $("#globalComment").value = fbk.commentaire || ""; globalReasons = new Set(fbk.raisons || []); }
-    renderGlobal();
-  }
-}
-function renderGlobal() {
-  const [up, down] = $("#globalRating").children;
-  if (up) { up.classList.toggle("on", globalNote === "up"); down.classList.toggle("on", globalNote === "down"); }
-  const box = $("#globalReasons"); box.innerHTML = "";
-  if (globalNote === "down" && CONFIG) for (const r of CONFIG.raisons.global || []) box.append(h("span", { class: "chip" + (globalReasons.has(r) ? " on" : ""), onclick: () => { globalReasons.has(r) ? globalReasons.delete(r) : globalReasons.add(r); renderGlobal(); } }, r.replaceAll("_", " ")));
-}
-$("#nextBtn").addEventListener("click", async () => {
-  $("#nextBtn").disabled = true;
-  try { await api("POST", "/job/suite", { job_id: job.job_id }); if (draft) draft.suiteAsked = true; await refreshJob(job.job_id); }
-  catch (e) { toast(e.message, 6000); }
-  $("#nextBtn").disabled = false;
-});
-$("#gCopyTitle").addEventListener("click", () => copy(job.titre, "Titre"));
-$("#gCopyDesc").addEventListener("click", () => copy(job.description, "Description"));
-$("#globalSend").addEventListener("click", async () => {
-  if (!globalNote) return toast("Choisis 👍 ou 👎");
-  try {
-    await api("POST", "/job/feedback", { job_id: job.job_id, cible: "global", note: globalNote, raisons: [...globalReasons], commentaire: $("#globalComment").value });
-    $("#globalMsg").textContent = "Merci, annonce clôturée."; await refreshJob(job.job_id);
-  } catch (e) { toast(e.message); }
-});
-function clearGlobalNote() { const c = $("#globalComment"), m = $("#globalMsg"); if (c) c.value = ""; if (m) m.textContent = ""; }
-$("#newBtn").addEventListener("click", () => {
-  stopPoll(); clearTimeout(textTimer); job = null; currentJobId = null; draft = null; store.set("job", "");
-  globalNote = null; globalReasons = new Set(); clearGlobalNote(); resetJournal(null); renderCreate();
-});
-
-let libLoading = false;
-let libLoadFailed = false;
-
-const libById = id => (LIB || []).find(i => i.drive_file_id === id);
-// ---------- actions : fiche ----------
-$("#photos").addEventListener("change", () => {
-  const box = $("#photoPreview"); box.innerHTML = "";
-  for (const f of $("#photos").files) box.append(h("img", { src: URL.createObjectURL(f) }));
-});
-$("#userSel").addEventListener("change", () => store.set("user", $("#userSel").value));
-
-$("#createBtn").addEventListener("click", async () => {
-  const files = [...$("#photos").files];
-  if (!files.length) return toast("Ajoute au moins une photo");
-  if (!$("#type").value.trim()) return toast("Indique le type de vêtement");
-  const fd = new FormData();
-  fd.append("user", $("#userSel").value); fd.append("genre", $("#genre").value); fd.append("type_vetement", $("#type").value.trim());
-  fd.append("moods_autorises", JSON.stringify(moodIds()));
-  for (const k of ["marque", "taille", "mesures", "etat", "prix"]) fd.append(k, $("#" + k).value.trim());
-  fd.append("texte_visible", $("#texteVisible").checked ? "true" : "false");
-  files.forEach((f, i) => fd.append("photo" + i, f, f.name));
-  $("#createBtn").disabled = true; $("#createMsg").textContent = "Envoi des photos…";
-  try {
-    const r = await api("POST", "/job", fd);
-    inputPhotos.set(r.job_id, URL.createObjectURL(files[0]));
-    draft = null; globalNote = null; globalReasons = new Set(); clearGlobalNote();
-    $("#createMsg").textContent = "";
-    await refreshJob(r.job_id);
-  } catch (e) { toast(e.message); $("#createMsg").textContent = e.message; }
-  $("#createBtn").disabled = false;
-});
-async function startStyle() {
-  try {
-    await api("POST", "/job/style", { job_id: job.job_id, moods_autorises: moodIds() });
-    if (draft && draft.jobId === job.job_id) draft.initSel = false;   // repartir de la proposition
-    await refreshJob(job.job_id);
-  } catch (e) { toast(e.message); }
-}
-const copy = async (text, what) => { try { await navigator.clipboard.writeText(text); toast(what + " copié"); } catch (e) { toast("Copie impossible"); } };
-
-// ---------- bibliothèque ----------
-let LIB = null;
-async function loadLibrary() {
-  if (!CONFIG) return;
-  try { LIB = (await api("GET", "/library")).items; libLoadFailed = false; } catch (e) { libLoadFailed = true; return toast(e.message); }
-  const genres = [...new Set(LIB.map(i => i.genre))].sort(), types = [...new Set(LIB.map(i => i.type_vetement))].sort();
-  const keep = { g: $("#fGenre").value, t: $("#fType").value, m: $("#fMood").value };
-  fillSelect($("#fGenre"), genres, "Tous"); fillSelect($("#fType"), types, "Tous");
-  fillSelect($("#fMood"), CONFIG.moods.map(m => ({ value: m.id, label: m.id.replaceAll("_", " ") })), "Tous");
-  $("#fGenre").value = keep.g; $("#fType").value = keep.t; $("#fMood").value = keep.m;
-  renderLibrary();
-}
-function renderLibrary() {
-  const g = $("#fGenre").value, t = $("#fType").value, m = $("#fMood").value, onlyActive = $("#fActive").checked;
-  const list = LIB.filter(i => (!g || i.genre === g) && (!t || i.type_vetement === t) && (!m || i.moods.includes(m)) && (!onlyActive || i.actif));
-  $("#libCount").textContent = list.length + " photo(s) sur " + LIB.length;
-  const box = $("#lib"); box.innerHTML = "";
-  for (const it of list) {
-    const card = h("div", { class: "card item" + (it.actif ? "" : " off") });
-    const chips = h("div", { class: "chips" });
-    const draw = () => { chips.innerHTML = ""; for (const mm of CONFIG.moods) chips.append(moodChip(mm, it.moods.includes(mm.id), async () => {
-      const next = it.moods.includes(mm.id) ? it.moods.filter(x => x !== mm.id) : [...it.moods, mm.id];
-      if (next.length > 3) return toast("3 moods maximum par photo");
-      try { const r = await api("POST", "/library/update", { drive_file_id: it.drive_file_id, moods: next }); it.moods = r.moods; draw(); } catch (e) { toast(e.message); }
-    })); };
-    draw();
-    const active = h("input", { type: "checkbox" }); active.checked = it.actif;
-    active.addEventListener("change", async () => {
-      try { const r = await api("POST", "/library/update", { drive_file_id: it.drive_file_id, actif: active.checked }); it.actif = r.actif; card.classList.toggle("off", !it.actif); }
-      catch (e) { toast(e.message); active.checked = !active.checked; }
+      sec.appendChild(vs); box.appendChild(sec);
     });
-    const descBox = h("div", { class: "hidden" });
-    const ta = h("textarea", {}); ta.value = it.description_en || "";
-    descBox.append(ta, h("button", { class: "btn ghost", style: "margin-top:4px", onclick: async () => {
-      try { const r = await api("POST", "/library/update", { drive_file_id: it.drive_file_id, description_en: ta.value }); it.description_en = r.description_en; toast("Description enregistrée"); } catch (e) { toast(e.message); }
-    } }, "Enregistrer"));
-    card.append(lazyImg(it.drive_file_id), h("div", { class: "muted", style: "margin-top:6px" }, it.genre + " · " + it.type_vetement), chips,
-      h("div", { class: "muted", title: it.description }, it.tags.join(", ")),
-      h("button", { class: "linkbtn", onclick: () => descBox.classList.toggle("hidden") }, "Modifier la description"), descBox, h("label", { style: "color:var(--ink)" }, active, " active"));
-    box.append(card);
-  }
+  } catch (e) { box.innerHTML = ""; const p = document.createElement("p"); p.className = "bad"; p.textContent = e.message; box.appendChild(p); }
 }
-for (const id of ["fGenre", "fType", "fMood", "fActive"]) $("#" + id).addEventListener("change", () => LIB && renderLibrary());
-$("#libReload").addEventListener("click", () => { libLoadFailed = false; loadLibrary(); });
-$("#upBtn").addEventListener("click", async () => {
-  const files = [...$("#upFiles").files]; const type = $("#upType").value.trim();
-  if (!files.length || !type) return toast("Choisis un type et au moins une photo");
-  const fd = new FormData(); fd.append("genre", $("#upGenre").value); fd.append("type_vetement", type);
-  files.forEach((f, i) => fd.append("photo" + i, f, f.name));
-  $("#upBtn").disabled = true; $("#upMsg").textContent = "Envoi…";
-  try {
-    const r = await api("POST", "/library/upload", fd);
-    $("#upMsg").textContent = r.photos + " photo(s) envoyée(s), indexation en cours (environ 5 s par photo). Recharge dans un instant.";
-    $("#upFiles").value = ""; setTimeout(() => loadLibrary(), 20000);
-  } catch (e) { $("#upMsg").textContent = e.message; toast(e.message); }
-  $("#upBtn").disabled = false;
-});
 
-// ---------- profil ----------
-let profMax = 1500;
-function profCount() { $("#profCount").textContent = $("#profText").value.length + " / " + profMax + " caractères"; }
-async function loadProfile() {
-  const user = $("#userSel").value; $("#profUser").textContent = user; $("#profProposal").classList.add("hidden"); $("#profMsg").textContent = "";
-  try { const r = await api("GET", "/users/profil?user=" + encodeURIComponent(user)); profMax = r.max_chars; $("#profText").value = r.preferences_md; profCount(); }
-  catch (e) { toast(e.message); }
-}
-$("#profText").addEventListener("input", profCount);
-$("#userSel").addEventListener("change", () => { if ($("#dProfil").open) loadProfile(); });
-$("#profSave").addEventListener("click", async () => {
-  try { const r = await api("POST", "/users/profil", { user: $("#userSel").value, preferences_md: $("#profText").value }); $("#profMsg").textContent = "Profil enregistré (" + r.caracteres + " caractères)."; }
-  catch (e) { toast(e.message); }
-});
-$("#profPropose").addEventListener("click", async () => {
-  $("#profPropose").disabled = true; $("#profMsg").textContent = "Analyse de tes retours…";
-  try {
-    const r = await api("POST", "/users/profil/propose", { user: $("#userSel").value });
-    const box = $("#profProposal"); box.classList.remove("hidden"); box.innerHTML = "";
-    if (r.ok === false) box.append(h("p", {}, r.message || r.error));
-    else {
-      box.append(h("h3", {}, "Proposition — confiance " + r.confiance + (r.inchange ? " (profil inchangé)" : "")),
-        h("ul", {}, (r.resume_changements || []).map(x => h("li", {}, x))),
-        h("pre", { class: "desc", style: "font:inherit;margin:8px 0" }, r.proposition || "(profil vide)"),
-        h("div", { class: "row" }, h("button", { class: "btn ghost", onclick: () => { $("#profText").value = r.proposition; profCount(); toast("Proposition placée dans le champ : relis-la puis Enregistre"); } }, "Utiliser cette proposition"),
-          h("span", { class: "muted" }, JSON.stringify(r.statistiques) + " · " + r.cout.toFixed(3) + " $")));
-    }
-    $("#profMsg").textContent = "";
-  } catch (e) { toast(e.message); $("#profMsg").textContent = e.message; }
-  $("#profPropose").disabled = false;
-});
+// --- connexion
+$("setBase").value = base(); $("setSecret").value = store.get(LS.secret);
+$("setSave").onclick = () => { store.set(LS.base, $("setBase").value.trim()); store.set(LS.secret, $("setSecret").value); toast("Enregistré"); init(); };
 
-// ---------- prompts ----------
-let PROMPTS = null;
-function lineDiff(oldText, newText) {
-  const o = oldText.split("\n"), n = newText.split("\n"), os = new Set(o), ns = new Set(n);
-  return [...o.filter(l => !ns.has(l)).map(l => "- " + l), ...n.filter(l => !os.has(l)).map(l => "+ " + l)].join("\n");
+async function init() {
+  if (!store.get(LS.secret)) { document.querySelector('#tabs button[data-tab="reglages"]').click(); $("dConnexion").open = true; return; }
+  try { await loadConfig(); await loadInspis(); } catch (e) { $("goErr").textContent = e.message; }
 }
-async function loadPrompts(keepName) {
-  try { PROMPTS = (await api("GET", "/prompts")).prompts; } catch (e) { return toast(e.message); }
-  const sel = $("#pName"); const cur = keepName || sel.value;
-  fillSelect(sel, PROMPTS.map(p => ({ value: p.nom, label: p.nom + (p.versions.length > 1 ? "  (" + p.versions.length + " versions)" : "") })));
-  if (cur && PROMPTS.some(p => p.nom === cur)) sel.value = cur;
-  renderPrompt();
-}
-function renderPrompt() {
-  const p = PROMPTS.find(x => x.nom === $("#pName").value); const box = $("#pVersions"); box.innerHTML = "";
-  if (!p) return;
-  $("#pPropose").disabled = !p.ajustable;
-  $("#pMsg").textContent = p.ajustable ? "" : "Ce prompt est une configuration : à modifier directement, pas d'ajustement automatique.";
-  const active = p.versions.find(v => v.actif);
-  for (const v of p.versions) {
-    const card = h("div", { class: "card" });
-    const text = h("pre", { class: "desc hidden", style: "font:inherit;margin:8px 0" }, v.texte);
-    const diff = h("pre", { class: "desc hidden", style: "font:12.5px ui-monospace,monospace;margin:8px 0" }, active && active !== v ? lineDiff(active.texte, v.texte) || "(identique)" : "");
-    const btnText = h("button", { class: "btn ghost", onclick: () => text.classList.toggle("hidden") }, "Voir le texte");
-    const btnDiff = active && active !== v ? h("button", { class: "btn ghost", onclick: () => diff.classList.toggle("hidden") }, "Différences avec la version active") : null;
-    const btnAct = v.actif ? null : h("button", { class: "btn", onclick: async () => {
-      if (!confirm("Activer la version " + v.version + " de " + p.nom + " ? Elle sera utilisée dès la prochaine génération.")) return;
-      try { await api("POST", "/prompts/activer", { nom: p.nom, version: v.version }); toast("Version " + v.version + " activée"); await loadPrompts(p.nom); } catch (e) { toast(e.message); }
-    } }, "Activer cette version");
-    card.append(h("div", { class: "row" }, h("strong", { class: "grow" }, "Version " + v.version), h("span", { class: "status" + (v.actif ? "" : "") }, v.actif ? "Active" : "Inactive")),
-      h("p", { class: "muted" }, v.notes || ""), h("div", { class: "row" }, btnText, btnDiff, btnAct), text, diff);
-    box.append(card);
-  }
-}
-$("#pName").addEventListener("change", () => { $("#pProposal").classList.add("hidden"); renderPrompt(); });
-$("#pPropose").addEventListener("click", async () => {
-  const nom = $("#pName").value; $("#pPropose").disabled = true; $("#pMsg").textContent = "Analyse des retours et rédaction de la proposition (30 s environ)…";
-  try {
-    const r = await api("POST", "/prompts/propose", { nom, jours: Number($("#pDays").value) || 30 });
-    const box = $("#pProposal"); box.classList.remove("hidden"); box.innerHTML = "";
-    if (r.ok === false) { box.append(h("p", {}, r.message || r.error)); $("#pMsg").textContent = ""; }
-    else {
-      box.append(h("h3", {}, "Proposition : " + r.nom + " v" + r.version_proposee + " (inactive) — confiance " + r.confiance),
-        h("ul", {}, r.resume_changements.map(x => h("li", {}, x))),
-        h("p", { class: "muted" }, "Hypothèses : " + r.hypotheses),
-        h("pre", { class: "desc", style: "font:12.5px ui-monospace,monospace" }, r.diff),
-        h("p", { class: "muted" }, "Signaux : " + JSON.stringify(r.statistiques) + " · coût " + r.cout.toFixed(3) + " $ · Active-la depuis la liste ci-dessous si elle te convient."));
-      $("#pMsg").textContent = "";
-    }
-    await loadPrompts(nom);
-  } catch (e) { toast(e.message); $("#pMsg").textContent = e.message; }
-  $("#pPropose").disabled = false;
-});
-
-// ---------- réglages & démarrage ----------
-function openSettings() { $("#setBase").value = base(); $("#setSecret").value = store.get("secret") || ""; showTab("reglages"); $("#dConnexion").open = true; }
-$("#setSave").addEventListener("click", () => {
-  store.set("base", $("#setBase").value.trim() || DEFAULT_BASE); store.set("secret", $("#setSecret").value.trim());
-  toast("Connexion enregistrée"); start();
-});
-
-async function start() {
-  if (!store.get("secret")) { openSettings(); return; }
-  try { await loadConfig(); } catch (e) { toast(e.message, 6000); openSettings(); return; }
-  showTab(store.get("tab") === "historique" || store.get("tab") === "reglages" ? store.get("tab") : "creer");
-  renderCreate();
-  const last = store.get("job");
-  if (last) refreshJob(last).catch(() => {});
-}
-start();
+init();
 </script>
 </body>
 </html>

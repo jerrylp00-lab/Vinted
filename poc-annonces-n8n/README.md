@@ -2,7 +2,7 @@
 
 > **V3** : 3 photos par fiche (`porte_miroir`, `cintre`, `detail`) sans check ni retry automatique, mood et inspirations choisis par l'humain (2 en vision, 3 en texte anglais), mannequin et vêtement décrits en texte. Coût mesuré : 0,24 $ par fiche (0,40 $ avant, à nombre d'images comparable). Détails : étape 9 ci-dessous.
 
-> **V4 (en cours, branche `poc-annonces-n8n-v4`)** : formulaire unique, 2 prompts (`prompt_image`, `prompt_texte`), image test puis lot, texte d'annonce automatique. Spec : `specs/2026-09-26-v4-design.md`. Workflows `VFN4 —` créés à côté de la V3 (la V3 reste intacte). Voir « V4 — workflows » en bas de ce fichier.
+> **V4 (en cours, branche `poc-annonces-n8n-v4`)** : formulaire unique, 2 prompts (`prompt_image`, `prompt_texte`), image test puis lot, texte d'annonce automatique. Spec : `specs/2026-09-26-v4-design.md`. Front `front/index.html` réécrit pour la V4. Les 27 workflows V3 obsolètes sont archivés dans n8n (2026-09-26, après une sauvegarde manuelle sur Drive) : les sections « Étape 0 à 9 » ci-dessous décrivent la V3 et servent d'historique. Voir « V4 — workflows » en bas de ce fichier.
 
 Back-end n8n des fiches Vinted. Spec : `specs/2026-09-24-backend-n8n-design.md`.
 
@@ -467,8 +467,12 @@ Base des webhooks : `https://178-105-102-54.sslip.io/webhook/vfn4` (secret `X-VF
 | `VFN4 — Inspirations` | `WLI27TZ5tfwwSbvO` | `GET /inspis`, `POST /inspis` multipart `photo0…` |
 | `VFN4 — Aperçu d'une image Drive` | `mixkXgJO00deogqW` | `GET /image?id=` |
 
-Réutilisés de la V3 (inchangés) : `GET /prompts` (liste avec versions) et `POST /prompts/activer` (restauration d'une version).
+Réutilisés de la V3 (renommés `VFN4 —`, webhooks inchangés sous `/webhook/vfn`) : `GET /prompts` (liste avec versions) et `POST /prompts/activer` (restauration d'une version). Reste aussi `VFN — Sauvegarde (manuelle)`. Total dans n8n : 15 workflows (12 VFN4 + 2 réutilisés + la sauvegarde).
+
+Archivés le 2026-09-26 (27) : tous les autres `VFN —` (créer une fiche, texte, style, plans, feedback, journal, bibliothèque, profils, ajustement de prompt, chien de garde…). Ils se restaurent depuis n8n (archivés, non supprimés).
 
 Test réel (run `mui0mz3ele65`, n = 2) : test + lot + texte en ~1 min, 0,08 $ par image ; boucle feedback puis nouvelle validation vérifiée (essai 2 du test et de l'image 1). Total des tests : 0,32 $.
 
-Limites connues : pas de workflow d'erreur ni de chien de garde V4 (un run bloqué reste `*_en_cours`) ; le front V4 n'est pas encore écrit (le `front/index.html` actuel parle à la V3) ; le plafond est par run (`config_plafond`), comme en V3.
+Limites connues : pas de workflow d'erreur ni de chien de garde V4 (un run bloqué reste `*_en_cours`) ; le plafond est par run (`config_plafond`), comme en V3.
+
+Front V4 : `front/index.html` (un seul fichier, sans dépendance ; `cd front && python3 -m http.server 8765`). Onglets Créer (formulaire unique, image test, feedback, validation, aperçu façon annonce Vinted avec texte éditable, copier, télécharger), Historique (totaux et coûts, réouverture d'une annonce) et Réglages (connexion, mannequin par défaut, prompts image et texte avec versions). Logique testée : `node --test scripts/test_front_logic.mjs`. Vérifié dans le navigateur contre un faux serveur local ; les appels au vrai n8n ont été vérifiés en `curl`.

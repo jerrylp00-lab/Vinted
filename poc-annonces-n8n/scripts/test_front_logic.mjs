@@ -5,96 +5,66 @@ import assert from "node:assert/strict";
 const html = readFileSync(new URL("../front/index.html", import.meta.url), "utf8");
 const m = html.match(/\/\/ <logic>([\s\S]*?)\/\/ <\/logic>/);
 assert.ok(m, "bloc // <logic> introuvable dans front/index.html");
-const L = new Function(m[1] + "\nreturn { PLAN_LABELS, PLAN_ORDER, stepOf, moodUnion, filterByMoods, cleanErr, journalLines, summarize };")();
+const L = new Function(m[1] + "\nreturn { fmtUsd, isBusy, viewOf, statusLabel, validateLabel, listingMeta, totalsOf };")();
 
-const item = (id, moods, actif = true) => ({ drive_file_id: id, moods, actif });
+const img = (idx, ok = true) => ({ idx, essai: 1, drive_file_id: ok ? "f" + idx : "", erreur: ok ? "" : "boom" });
 
-test("stepOf : parcours normal", () => {
-  assert.equal(L.stepOf(null), 1);
-  for (const s of ["texte_en_cours", "texte_pret"]) assert.equal(L.stepOf({ statut: s }), 1);
-  for (const s of ["selection_en_cours", "en_attente_validation"]) assert.equal(L.stepOf({ statut: s }), 2);
-  for (const s of ["generation_en_cours", "premiere_prete", "galerie_prete", "budget_depasse", "termine"]) assert.equal(L.stepOf({ statut: s }), 3);
+test("fmtUsd : virgule française", () => {
+  assert.equal(L.fmtUsd(0.08), "0,08 $");
+  assert.equal(L.fmtUsd(undefined), "0,00 $");
 });
 
-test("stepOf : une erreur reste à l'étape qui l'a produite", () => {
-  assert.equal(L.stepOf({ statut: "erreur", erreur: "Texte : boom", titre: "" }), 1);
-  assert.equal(L.stepOf({ statut: "erreur", erreur: "Texte : boom", titre: "T" }), 1);
-  assert.equal(L.stepOf({ statut: "erreur", erreur: "Style : boom", titre: "T" }), 2);
-  assert.equal(L.stepOf({ statut: "erreur", erreur: "", titre: "" }), 1);
+test("isBusy : seuls les statuts en cours", () => {
+  assert.equal(L.isBusy(null), false);
+  for (const s of ["test_en_cours", "lot_en_cours"]) assert.equal(L.isBusy({ statut: s }), true);
+  for (const s of ["test_pret", "test_erreur", "termine"]) assert.equal(L.isBusy({ statut: s }), false);
 });
 
-test("moodUnion : union triée par fréquence, sans doublon", () => {
-  const items = [item("a", ["parisian_chic", "vintage_retro"]), item("b", ["parisian_chic"]), item("c", ["streetwear_decontracte"])];
-  assert.deepEqual(L.moodUnion(items, ["a", "b", "c"]), ["parisian_chic", "streetwear_decontracte", "vintage_retro"]);
-  assert.deepEqual(L.moodUnion(items, ["a"]), ["parisian_chic", "vintage_retro"]);
-  assert.deepEqual(L.moodUnion(items, []), []);
-  assert.deepEqual(L.moodUnion(items, ["inconnu"]), []);
+test("viewOf : test prêt = validation et feedback possibles, pas d'annonce", () => {
+  const v = L.viewOf({ statut: "test_pret", n: 3, images: [img(0)] });
+  assert.equal(v.showTest, true); assert.equal(v.canValidate, true); assert.equal(v.canFeedback, true); assert.equal(v.showListing, false);
 });
 
-test("filterByMoods : au moins un mood coché, actifs seulement, aucun filtre = tout", () => {
-  const items = [item("a", ["x", "y"]), item("b", ["y"]), item("c", ["z"]), item("d", ["x"], false)];
-  assert.deepEqual(L.filterByMoods(items, ["x"]).map(i => i.drive_file_id), ["a"]);
-  assert.deepEqual(L.filterByMoods(items, ["x", "z"]).map(i => i.drive_file_id), ["a", "c"]);
-  assert.deepEqual(L.filterByMoods(items, []).map(i => i.drive_file_id), ["a", "b", "c"]);
+test("viewOf : test prêt mais sans image = pas de validation", () => {
+  assert.equal(L.viewOf({ statut: "test_pret", n: 3, images: [img(0, false)] }).canValidate, false);
 });
 
-test("cleanErr retire le préfixe d'étape", () => {
-  assert.equal(L.cleanErr("Photos : délai dépassé"), "délai dépassé");
-  assert.equal(L.cleanErr("Texte : x"), "x");
-  assert.equal(L.cleanErr("autre"), "autre");
-  assert.equal(L.cleanErr(undefined), "");
+test("viewOf : test en cours = rien d'actionnable", () => {
+  const v = L.viewOf({ statut: "test_en_cours", n: 3, images: [] });
+  assert.equal(v.canValidate, false); assert.equal(v.canFeedback, false);
 });
 
-const job = (over) => Object.assign({ job_id: "j1", statut: "texte_en_cours", erreur: "", cout_total: 0, plans: [
-  { plan: "porte_miroir", statut: "en_attente" }, { plan: "cintre", statut: "en_attente" }, { plan: "detail", statut: "en_attente" }] }, over);
-const withPlans = (states) => ({ plans: ["porte_miroir", "cintre", "detail"].map((plan, i) => Object.assign({ plan, statut: "en_attente" }, states[i] || {})) });
-
-test("journalLines : texte", () => {
-  assert.deepEqual(L.journalLines(null, job()).map(l => l.text), ["Lecture des photos…"]);
-  const l = L.journalLines(job(), job({ statut: "texte_pret" }));
-  assert.deepEqual(l.map(x => [x.text, x.kind]), [["Annonce prête ✓", "ok"]]);
-  assert.deepEqual(L.journalLines(job(), job()), []);
+test("viewOf : test en erreur = feedback possible (relance), pas de validation", () => {
+  const v = L.viewOf({ statut: "test_erreur", n: 3, images: [img(0, false)] });
+  assert.equal(v.canFeedback, true); assert.equal(v.canValidate, false);
 });
 
-test("journalLines : sélection puis génération en deux temps", () => {
-  assert.equal(L.journalLines(job({ statut: "texte_pret" }), job({ statut: "selection_en_cours" }))[0].text, "Recherche des inspirations dans la bibliothèque…");
-  assert.equal(L.journalLines(job({ statut: "selection_en_cours" }), job({ statut: "en_attente_validation" }))[0].kind, "ok");
-  assert.equal(L.journalLines(job({ statut: "en_attente_validation" }), job({ statut: "generation_en_cours" }))[0].text, "Génération de la photo portée (1/3)…");
-  const prev = job({ statut: "generation_en_cours" });
-  const cur = job({ statut: "premiere_prete", ...withPlans([{ statut: "pret", tentative: 1, cout_plan: 0.08 }]) });
-  assert.deepEqual(L.journalLines(prev, cur).map(l => l.text), ["Photo « Porté » prête (1/3) ✓ 0.08 $", "Première photo prête : à toi de la valider."]);
-  const s2 = job({ statut: "generation_en_cours", ...withPlans([{ statut: "pret", tentative: 1, cout_plan: 0.08 }]) });
-  assert.equal(L.journalLines(cur, s2, { suiteAsked: true })[0].text, "Génération des photos 2/3 et 3/3…");
-  assert.equal(L.journalLines(cur, s2)[0].text, "Nouvelle tentative de la photo portée…");
-  assert.equal(L.journalLines(cur, s2, { suiteAsked: false })[0].text, "Nouvelle tentative de la photo portée…");
+test("viewOf : lot en cours = annonce visible, progression du lot", () => {
+  const v = L.viewOf({ statut: "lot_en_cours", n: 4, images: [img(0), img(1), img(2, false)] });
+  assert.equal(v.showListing, true); assert.equal(v.lotDone, 1); assert.equal(v.lotExpected, 3); assert.equal(v.canFeedback, false);
 });
 
-test("journalLines : galerie prête, erreurs de plan et d'étape", () => {
-  const prev = job({ statut: "generation_en_cours", ...withPlans([{ statut: "pret", tentative: 1, cout_plan: 0.08 }, { statut: "pret", tentative: 1, cout_plan: 0.08 }]) });
-  const cur = job({ statut: "galerie_prete", cout_total: 0.2402, ...withPlans([{ statut: "pret", tentative: 1, cout_plan: 0.08 }, { statut: "pret", tentative: 1, cout_plan: 0.08 }, { statut: "pret", tentative: 1, cout_plan: 0.08 }]) });
-  assert.deepEqual(L.journalLines(prev, cur).map(l => l.text), ["Photo « Détail » prête (3/3) ✓ 0.08 $", "Les 3 photos sont prêtes ✓ (coût total 0.24 $)"]);
-  const errPlan = job({ statut: "galerie_prete", ...withPlans([{ statut: "pret", tentative: 1, cout_plan: 0.08 }, { statut: "erreur", erreur: "Photos : délai dépassé" }]) });
-  assert.ok(L.journalLines(job({ statut: "generation_en_cours" }), errPlan).some(l => l.kind === "err" && l.text === "⚠ Photo « Sur cintre » : délai dépassé"));
-  const errJob = L.journalLines(job(), job({ statut: "erreur", erreur: "Texte : boom" }));
-  assert.ok(errJob.some(l => l.kind === "err" && l.text === "⚠ Texte : boom"));
+test("viewOf : terminé = annonce et feedback général", () => {
+  const v = L.viewOf({ statut: "termine", n: 2, images: [img(0), img(1)] });
+  assert.equal(v.showListing, true); assert.equal(v.canFeedback, true); assert.equal(v.canValidate, false);
 });
 
-test("journalLines : régénération d'une photo", () => {
-  const ready = withPlans([{ statut: "pret", tentative: 1 }, { statut: "pret", tentative: 1 }, { statut: "pret", tentative: 1 }]);
-  const l = L.journalLines(job({ statut: "galerie_prete", ...ready }), job({ statut: "generation_en_cours", ...ready }));
-  assert.equal(l[0].text, "Régénération d'une photo…");
+test("statusLabel : lot avec compteur", () => {
+  assert.match(L.statusLabel({ statut: "lot_en_cours", n: 3, images: [img(0), img(1)] }), /\(1\/2\)/);
+  assert.equal(L.statusLabel({ statut: "termine", n: 1, images: [] }), "Annonce prête ✓");
 });
 
-test("summarize : période, totaux, images et régénérations", () => {
-  const now = new Date("2026-09-25T12:00:00Z").getTime();
-  const jobs = [
-    { created_at: "2026-09-24T10:00:00Z", cout_texte: 0.0002, cout_images: 0.24, cout_total: 0.2402, nb_images: 3, nb_regenerations: 0 },
-    { created_at: "2026-09-10T10:00:00Z", cout_texte: 0.0002, cout_images: 0.4, cout_total: 0.4002, nb_images: 5, nb_regenerations: 2 },
-    { created_at: "2026-08-01T10:00:00Z", cout_texte: 0, cout_images: 0, cout_total: 0, nb_images: 0, nb_regenerations: 0 }
-  ];
-  const s7 = L.summarize(jobs, 7, now), s30 = L.summarize(jobs, 30, now), all = L.summarize(jobs, 0, now);
-  assert.equal(s7.fiches, 1); assert.equal(s30.fiches, 2); assert.equal(all.fiches, 3);
-  assert.equal(s30.images, 8); assert.equal(s30.regenerations, 2);
-  assert.equal(Math.round(s30.cout_total * 10000), 6404);
-  assert.equal(all.list.length, 3);
+test("validateLabel : nombre d'images restantes et coût estimé", () => {
+  assert.equal(L.validateLabel({ n: 3 }, 0.1), "Valider et générer les 2 autres (≈ 0,20 $)");
+  assert.equal(L.validateLabel({ n: 1 }, 0.1), "Valider et rédiger le texte");
+});
+
+test("listingMeta : uniquement les champs renseignés", () => {
+  assert.equal(L.listingMeta({ marque: "Zara", taille: "M", mesures: "" }), "Marque : Zara · Taille : M");
+  assert.equal(L.listingMeta({}), "");
+});
+
+test("totalsOf : cumule annonces, images et coûts", () => {
+  const t = L.totalsOf([{ nb_images: 3, cout_total: 0.25 }, { nb_images: 2, cout_total: 0.5 }]);
+  assert.equal(t.runs, 2); assert.equal(t.images, 5); assert.ok(Math.abs(t.cout - 0.75) < 1e-9);
 });
