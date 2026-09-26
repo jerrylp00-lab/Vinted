@@ -93,9 +93,6 @@
     <button data-tab="reglages">Réglages</button>
   </nav>
   <span class="grow"></span>
-  <label style="margin:0" class="muted">Utilisateur
-    <select id="userSel" style="width:auto;display:inline-block"></select>
-  </label>
 </header>
 
 <main>
@@ -272,7 +269,7 @@ function totalsOf(items) {
 
 const $ = id => document.getElementById(id);
 const DEFAULT_BASE = "https://178-105-102-54.sslip.io/webhook/vfn4";
-const LS = { base: "vfn4_base", secret: "vfn4_secret", user: "vfn4_user" };
+const LS = { base: "vfn4_base", secret: "vfn4_secret" };
 const store = { get: k => { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
 const base = () => (store.get(LS.base) || DEFAULT_BASE).replace(/\/+$/, "");
 const baseV3 = () => base().replace(/\/vfn4$/, "/vfn");
@@ -329,10 +326,6 @@ document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
 // --- configuration
 async function loadConfig() {
   cfg = await api("/config");
-  const sel = $("userSel"); sel.innerHTML = "";
-  (cfg.users.length ? cfg.users : ["Jeremy"]).forEach(u => { const o = document.createElement("option"); o.value = u; o.textContent = u; sel.appendChild(o); });
-  const saved = store.get(LS.user); if (saved && cfg.users.includes(saved)) sel.value = saved;
-  sel.onchange = () => store.set(LS.user, sel.value);
   $("nImg").min = cfg.n.min; $("nImg").max = cfg.n.max; if (!$("nImg").dataset.touched) $("nImg").value = cfg.n.defaut;
   lastMannequin = cfg.mannequin.texte; $("mannequin").value = lastMannequin; $("mannDefault").value = lastMannequin;
   $("goHint").textContent = "≈ " + fmtUsd(cfg.estimation_image_usd) + " pour l'image test";
@@ -393,7 +386,7 @@ $("goBtn").onclick = async () => {
   try {
     await saveMannequin($("mannequin").value, "le formulaire");
     const fd = new FormData();
-    fd.append("user", $("userSel").value || "Jeremy"); fd.append("inspi_file_id", selectedInspi);
+    fd.append("inspi_file_id", selectedInspi);
     fd.append("n", $("nImg").value); fd.append("mannequin", $("mannequin").value.trim());
     ["pose", "notes", "taille", "marque", "mesures"].forEach(k => fd.append(k, $(k).value.trim()));
     fd.append("photo0", f);
@@ -458,8 +451,8 @@ function renderRun(fullReset) {
 
 let mainIdx = 0;
 function renderListing(run) {
-  $("sellerName").textContent = run.user || "";
-  $("avatar").textContent = (run.user || "?").slice(0, 1).toUpperCase();
+  $("sellerName").textContent = "";
+  $("avatar").textContent = "";
   $("lMeta").textContent = listingMeta(run);
   const active = document.activeElement;
   if (active !== $("lTitre")) $("lTitre").value = run.titre || "";
@@ -530,7 +523,7 @@ async function loadHistory() {
       row.appendChild(r.miniature ? imgEl(r.miniature) : Object.assign(document.createElement("div"), { className: "mini" }));
       const mid = document.createElement("div");
       const h = document.createElement("b"); h.textContent = r.titre || "(sans titre)"; mid.appendChild(h);
-      const m = document.createElement("div"); m.className = "muted"; m.textContent = new Date(r.cree_le).toLocaleString("fr-FR") + " · " + r.user + " · " + r.nb_images + "/" + r.n + " images · " + r.statut + (r.erreur ? " · " + cleanErr(r.erreur) : ""); mid.appendChild(m);
+      const m = document.createElement("div"); m.className = "muted"; m.textContent = new Date(r.cree_le).toLocaleString("fr-FR") + " · " +  + r.nb_images + "/" + r.n + " images · " + r.statut + (r.erreur ? " · " + cleanErr(r.erreur) : ""); mid.appendChild(m);
       row.appendChild(mid);
       const c = document.createElement("div"); c.textContent = fmtUsd(r.cout_total); row.appendChild(c);
       row.onclick = () => openRun(r.run_id).catch(e => toast(e.message));
